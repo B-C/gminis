@@ -17,6 +17,7 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
+#include <list>
 #include <string>
 #include <cstdio>
 #include <cstdlib>
@@ -73,6 +74,10 @@ public:
 };
 
 class Mesh {
+private:
+  vector<Vertex> V_orig;
+  vector<list<int> > voisins;
+
 public:
   vector<Vertex> V;
   vector<Triangle> T;
@@ -83,7 +88,51 @@ public:
   void scaleUnit ();
   void makeCube();
   void makeSphere(unsigned int resU, unsigned int resV);
+  void smooth(float alpha);
+  void compute1voisinages();
+  void reset();
 };
+
+void Mesh::compute1voisinages(){
+  voisins.resize(V.size());
+
+  for(unsigned int i = 0 ; i < T.size() ; i++) {
+	for(unsigned int j = 0 ; j < 3 ; j++) {
+	  voisins[T[i].v[j]].push_front(T[i].v[(j+1)%3]);
+	  voisins[T[i].v[j]].push_front(T[i].v[(j+2)%3]);
+	}
+  }
+
+  for(unsigned int i = 0; i < voisins.size(); i++) {
+	voisins[i].sort();
+	voisins[i].unique();
+  }
+}
+
+void Mesh::reset() {
+  V=V_orig;
+}
+
+void Mesh::smooth(float alpha) {
+  vector<Vec3Df> barycentre;
+  barycentre.resize(V.size());
+
+  for(unsigned int i = 0; i < voisins.size(); i++) {
+	barycentre[i] = Vec3Df(0,0,0);
+	for(list<int>::iterator it=voisins[i].begin() ; 
+		it != voisins[i].end(); it++ ) {
+	  barycentre[i] += V[*it].p;
+	}
+	barycentre[i] /= voisins[i].size();
+  }
+
+  for(unsigned int i = 0; i < V.size() ; i++) {
+	V[i].p += alpha*(barycentre[i]-V[i].p);
+  }
+  
+  centerAndScaleToUnit ();
+  recomputeNormals();
+}
 
 void Mesh::makeCube () {
   unsigned int sizeV = 8;
@@ -175,6 +224,7 @@ void Mesh::loadOFF (const string & filename) {
   in.close ();
   centerAndScaleToUnit ();
   recomputeNormals ();
+  V_orig = V;
 }
 
 void Mesh::recomputeNormals () {
@@ -286,6 +336,7 @@ void initLight () {
 void init (const char * modelFilename) {
   camera.resize (SCREENWIDTH, SCREENHEIGHT);
   mesh.loadOFF (modelFilename);
+  mesh.compute1voisinages();
   //mesh.makeSphere(10, 10);
   initLight ();
   glCullFace (GL_BACK);
@@ -359,8 +410,26 @@ void idle () {
   glutPostRedisplay ();
 }
 
+static float smooth_coeff = 0;
+
 void key (unsigned char keyPressed, int x, int y) {
   switch (keyPressed) {
+  case 'a':
+	if (smooth_coeff <0.99)
+	  smooth_coeff+=0.1;
+	cout << " Alpha (smooth) "<< smooth_coeff << endl;
+	break;
+  case 'z':
+	if (smooth_coeff >0.01)
+	  smooth_coeff-=0.1;
+	cout << " Alpha (smooth) "<< smooth_coeff << endl;
+	break;
+  case 's':
+	mesh.smooth(smooth_coeff);
+	break;
+  case 'r':
+	mesh.reset();
+	break;
   case 'f':
 	if (fullScreen == true) {
 	  glutReshapeWindow (SCREENWIDTH, SCREENHEIGHT);
