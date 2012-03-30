@@ -28,5 +28,5 @@ ifneq "$(MAKECMDGOALS)" "clean"
 
 endif
 
-%.d : %.c Makefile
-	$(CXX) $(CXXFLAGS) $(CPPFLAGS) $(TARGET_ARCH) -MM -MF $@ -MP -MT $(patsubst %.cpp, %.o,$<) $<
+%.d : %.cpp Makefile
+	$(CC) $(CXXFLAGS) $(CPPFLAGS) $(TARGET_ARCH) -MM -MF $@ -MP -MT $(patsubst %.cpp, %.o,$<) $<
