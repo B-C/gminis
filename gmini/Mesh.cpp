@@ -49,6 +49,7 @@ void Mesh::simplifyMesh(unsigned int r){
   // Generate grid
   vector<int> nb;
   nb.resize(grid.size());
+
   for(vector<Vertex>::const_iterator v=V.begin() ; v < V.end(); v++) {
   	int i= getIndice(v->p, cube[0], delta, r);
   	grid[i].p += v->p;
@@ -56,10 +57,20 @@ void Mesh::simplifyMesh(unsigned int r){
 	nb[i]++;
   }
 
+  // Generate new vertexes vectors and map
+  vector<int> indMap;
+  indMap.resize(grid.size());
+  vector<Vertex> newV;
+  unsigned int newI =0;
   for(unsigned int i =0 ; i < grid.size() ; i++) {
-	grid[i].p/=nb[i];
-	grid[i].n.normalize();
+	if(nb[i] != 0) {
+	  grid[i].p/=nb[i];
+	  grid[i].n.normalize();
+	  newV.push_back(grid[i]);
+	  indMap[i] = newI++;
+	}
   }
+  grid.clear();
 
   // reindex triangle;
   for(vector<Triangle>::iterator t=T.begin() ; t < T.end(); t++) {
@@ -78,11 +89,12 @@ void Mesh::simplifyMesh(unsigned int r){
 	else {
 	  //reindex triangle on the grid
 	  for(int j=0 ; j<3 ; j++)
-		t->v[j] = getIndice(indice[j], r);
+		t->v[j] = indMap[getIndice(indice[j], r)];
 	}
   }
 
-  V=grid;
+  V=newV;
+  voisins.clear();
   recomputeNormals();
 }
 
@@ -105,14 +117,17 @@ void Mesh::compute1voisinages(){
 void Mesh::smooth(float alpha) {
   vector<Vec3Df> barycentre;
   barycentre.resize(V.size());
+  if(voisins.size()==0)
+	compute1voisinages();
 
-  for(unsigned int i = 0; i < voisins.size(); i++) {
+  for(unsigned int i = 0 ; i < barycentre.size() ; i++) {
 	barycentre[i] = Vec3Df(0,0,0);
-	for(list<int>::iterator it=voisins[i].begin() ;
-		it != voisins[i].end(); it++ ) {
+	for(list<int>::iterator it=voisins[i].begin(); 
+		it != voisins[i].end(); it++) {
 	  barycentre[i] += V[*it].p;
 	}
-	barycentre[i] /= voisins[i].size();
+	if(voisins[i].size() != 0) //check for when vertex in no triangle
+	  barycentre[i] /= voisins[i].size();
   }
 
   for(unsigned int i = 0; i < V.size() ; i++) {

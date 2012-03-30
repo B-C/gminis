@@ -93,7 +93,6 @@ void initLight () {
 void init (const char * modelFilename) {
   camera.resize (SCREENWIDTH, SCREENHEIGHT);
   mesh.loadOFF (modelFilename);
-  mesh.compute1voisinages();
   //mesh.makeSphere(10, 10);
   initLight ();
   glCullFace (GL_BACK);
@@ -167,37 +166,38 @@ void idle () {
   glutPostRedisplay ();
 }
 
-static float smooth_coeff = 0;
-
 void key (unsigned char keyPressed, int x, int y) {
+#define statMesh() 	cout << "nb triangle: " << mesh.T.size() \
+						 << " - nb Vertex: " << mesh.V.size() << endl
   switch (keyPressed) {
-  case 'a':
-	if (smooth_coeff <0.99)
-	  smooth_coeff+=0.1;
-	cout << " Alpha (smooth) "<< smooth_coeff << endl;
+  case '1':
+	mesh.smooth(0.1);
+	cout << "smooth - 0.1" << endl;
 	break;
-  case 'z':
-	if (smooth_coeff >0.01)
-	  smooth_coeff-=0.1;
-	cout << " Alpha (smooth) "<< smooth_coeff << endl;
+  case '2':
+	mesh.smooth(0.5);
+	cout << "smooth - 0.5" << endl;
 	break;
-  case 's':
-	mesh.smooth(smooth_coeff);
+  case '3':
+	mesh.smooth(1);
+	cout << "smooth - 1.0" << endl;
 	break;
   case '4':
-	mesh.reset();
+	statMesh();
 	mesh.simplifyMesh(64);
 	cout << "simplified 64x64" << endl;
+	statMesh();
 	break;
   case '5':
-	mesh.reset();
+	statMesh();
 	mesh.simplifyMesh(32);
 	cout << "simplified 32x32" << endl;
+	statMesh();
 	break;
   case '6':
-	mesh.reset();
+	statMesh();
 	mesh.simplifyMesh(16);
-	cout << "simplified 16x16" << endl;
+	statMesh();
 	break;
   case 'r':
 	mesh.reset();

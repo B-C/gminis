@@ -52,29 +52,34 @@ public:
   std::vector<Vertex> V;
   std::vector<Triangle> T;
 
-  void loadOFF (const std::string & filename);
-  void recomputeNormals ();
-  void centerAndScaleToUnit ();
-  void scaleUnit ();
+  void loadOFF(const std::string & filename);
   void makeCube();
   void makeSphere(unsigned int resU, unsigned int resV);
+
   void smooth(float alpha);
-  void compute1voisinages();
+  void simplifyMesh(unsigned int resolution);
+
   void reset() {
 	V = V_orig;
 	T = T_orig;
   }
-  void simplifyMesh (unsigned int resolution);
 
 private:
+  void scaleUnit();
+  void recomputeNormals();
+ void centerAndScaleToUnit();
   void initPostLoad() {
-	centerAndScaleToUnit ();
-	recomputeNormals ();
+	centerAndScaleToUnit();
+	recomputeNormals();
 	V_orig = V;
 	T_orig = T;
   }
 
-  std::vector<Vec3Df> getCube() const;
+  //smooth
+  void compute1voisinages();
+
+  //simplifyMesh
+  std::vector<Vec3Df> getCube() const; //compube surrounding cube
   inline static Vec3D<int> getIndice(Vec3Df point, Vec3Df offset, Vec3Df pas);
   inline static int getIndice(Vec3D<int> indices,
 							  unsigned int resolution);
