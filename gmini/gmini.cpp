@@ -50,20 +50,20 @@ static PolygonMode polygonMode = Flat;
 static Mesh mesh;
 
 void printUsage () {
-  cerr << endl 
+  cerr << endl
 	   << "gMini: a minimal OpenGL/GLUT application" << endl
-	   << "for 3D graphics." << endl 
+	   << "for 3D graphics." << endl
 	   << "Author : Tamy Boubekeur (http://www.labri.fr/~boubek)" << endl << endl
 	   << "Usage : ./gmini [<file.off>]" << endl
-	   << "Keyboard commands" << endl 
+	   << "Keyboard commands" << endl
 	   << "------------------" << endl
-	   << " ?: Print help" << endl 
-	   << " w: Toggle Wireframe/Flat/Gouraud Rendering Mode" << endl 
-	   << " f: Toggle full screen mode" << endl 
-	   << " <drag>+<left button>: rotate model" << endl 
+	   << " ?: Print help" << endl
+	   << " w: Toggle Wireframe/Flat/Gouraud Rendering Mode" << endl
+	   << " f: Toggle full screen mode" << endl
+	   << " <drag>+<left button>: rotate model" << endl
 	   << " <drag>+<right button>: move model" << endl
 	   << " <drag>+<middle button>: zoom" << endl
-	   << " q, <esc>: Quit" << endl << endl; 
+	   << " q, <esc>: Quit" << endl << endl;
 }
 
 void usage () {
@@ -80,7 +80,7 @@ void initLight () {
   GLfloat direction1[3] = {-52.0f,-16.0f,-50.0f};
   GLfloat color1[4] = {0.5f, 1.0f, 0.5f, 1.0f};
   GLfloat ambient[4] = {0.3f, 0.3f, 0.3f, 0.5f};
-  
+
   glLightfv (GL_LIGHT1, GL_POSITION, light_position1);
   glLightfv (GL_LIGHT1, GL_SPOT_DIRECTION, direction1);
   glLightfv (GL_LIGHT1, GL_DIFFUSE, color1);
@@ -104,17 +104,17 @@ void init (const char * modelFilename) {
 
 
 // ------------------------------------
-// Replace the code of this 
-// functions for cleaning memory, 
+// Replace the code of this
+// functions for cleaning memory,
 // closing sockets, etc.
 // ------------------------------------
 
 void clear () {
-  
+
 }
 
 // ------------------------------------
-// Replace the code of this 
+// Replace the code of this
 // functions for alternative rendering.
 // ------------------------------------
 
@@ -167,36 +167,43 @@ void idle () {
 }
 
 void key (unsigned char keyPressed, int x, int y) {
-#define statMesh() 	cout << "nb triangle: " << mesh.T.size() \
-						 << " - nb Vertex: " << mesh.V.size() << endl
+#define statMesh()									\
+  cout << "nb triangle: " << mesh.T.size()			\
+	   << " - nb Vertex: " << mesh.V.size() << endl
+
+#define lisse(n)								\
+  mesh.smooth((n));								\
+  cout << "smooth - "#n << endl
+
+#define simplify(n)								\
+  statMesh();									\
+  mesh.simplifyMesh((n));						\
+  cout << "simplified "#n"x"#n << endl;			\
+  statMesh()
+
   switch (keyPressed) {
   case '1':
-	mesh.smooth(0.1);
-	cout << "smooth - 0.1" << endl;
+	lisse(0.1);
 	break;
   case '2':
-	mesh.smooth(0.5);
-	cout << "smooth - 0.5" << endl;
+	lisse(0.5);
 	break;
   case '3':
-	mesh.smooth(1);
-	cout << "smooth - 1.0" << endl;
+	lisse(1);
 	break;
   case '4':
-	statMesh();
-	mesh.simplifyMesh(64);
-	cout << "simplified 64x64" << endl;
-	statMesh();
+	simplify(64);
 	break;
   case '5':
-	statMesh();
-	mesh.simplifyMesh(32);
-	cout << "simplified 32x32" << endl;
-	statMesh();
+	simplify(32);
 	break;
   case '6':
+	simplify(16);
+	break;
+  case '8':
 	statMesh();
-	mesh.simplifyMesh(16);
+	mesh.subdivideLoop();
+	cout << "subdivideLoop" << endl;
 	statMesh();
 	break;
   case 'r':
@@ -209,7 +216,7 @@ void key (unsigned char keyPressed, int x, int y) {
 	} else {
 	  glutFullScreen ();
 	  fullScreen = true;
-	}      
+	}
 	break;
   case 'q':
   case 27:
@@ -233,6 +240,10 @@ void key (unsigned char keyPressed, int x, int y) {
 	break;
   }
   idle ();
+
+#undef statMesh
+#undef lisse
+#undef simplify
 }
 
 void mouse (int button, int state, int x, int y) {
@@ -294,7 +305,7 @@ int main (int argc, char ** argv) {
   glutInitDisplayMode (GLUT_RGBA | GLUT_DEPTH | GLUT_DOUBLE);
   glutInitWindowSize (SCREENWIDTH, SCREENHEIGHT);
   window = glutCreateWindow ("gMini");
-  
+
   init (argc == 2 ? argv[1] : "sphere.off");
   glutIdleFunc (idle);
   glutDisplayFunc (display);
@@ -302,8 +313,7 @@ int main (int argc, char ** argv) {
   glutReshapeFunc (reshape);
   glutMotionFunc (motion);
   glutMouseFunc (mouse);
-  key ('?', 0, 0);   
+  key ('?', 0, 0);
   glutMainLoop ();
   return EXIT_SUCCESS;
 }
-

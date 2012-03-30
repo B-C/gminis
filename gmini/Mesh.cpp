@@ -12,6 +12,11 @@
 
 using namespace std;
 
+void Mesh::subdivideLoop(){
+
+
+}
+
 vector<Vec3Df> Mesh::getCube() const {
   vector<Vec3Df> cube;
   cube.resize(2);
@@ -94,7 +99,8 @@ void Mesh::simplifyMesh(unsigned int r){
   }
 
   V=newV;
-  voisins.clear();
+  voisins.clear();//neighboorhood has changed;
+  centerAndScaleToUnit();
   recomputeNormals();
 }
 
@@ -122,7 +128,7 @@ void Mesh::smooth(float alpha) {
 
   for(unsigned int i = 0 ; i < barycentre.size() ; i++) {
 	barycentre[i] = Vec3Df(0,0,0);
-	for(list<int>::iterator it=voisins[i].begin(); 
+	for(list<int>::iterator it=voisins[i].begin();
 		it != voisins[i].end(); it++) {
 	  barycentre[i] += V[*it].p;
 	}
@@ -134,7 +140,7 @@ void Mesh::smooth(float alpha) {
 	V[i].p += alpha*(barycentre[i]-V[i].p);
   }
 
-  centerAndScaleToUnit ();
+  centerAndScaleToUnit();
   recomputeNormals();
 }
 

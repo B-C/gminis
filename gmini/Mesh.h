@@ -58,6 +58,7 @@ public:
 
   void smooth(float alpha);
   void simplifyMesh(unsigned int resolution);
+  void subdivideLoop();
 
   void reset() {
 	V = V_orig;
@@ -67,7 +68,7 @@ public:
 private:
   void scaleUnit();
   void recomputeNormals();
- void centerAndScaleToUnit();
+  void centerAndScaleToUnit();
   void initPostLoad() {
 	centerAndScaleToUnit();
 	recomputeNormals();
