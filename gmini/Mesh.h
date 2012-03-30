@@ -45,6 +45,7 @@ public:
 class Mesh {
 private:
   std::vector<Vertex> V_orig;
+  std::vector<Triangle> T_orig;
   std::vector<std::list<int> > voisins;
 
 public:
@@ -59,9 +60,24 @@ public:
   void makeSphere(unsigned int resU, unsigned int resV);
   void smooth(float alpha);
   void compute1voisinages();
-  void reset();
-  void simplifyMesh (unsigned int r);
+  void reset() {
+	V = V_orig;
+	T = T_orig;
+  }
+  void simplifyMesh (unsigned int resolution);
 
 private:
+  void initPostLoad() {
+	centerAndScaleToUnit ();
+	recomputeNormals ();
+	V_orig = V;
+	T_orig = T;
+  }
+
   std::vector<Vec3Df> getCube() const;
+  inline static Vec3D<int> getIndice(Vec3Df point, Vec3Df offset, Vec3Df pas);
+  inline static int getIndice(Vec3D<int> indices,
+							  unsigned int resolution);
+  inline static int getIndice(Vec3Df point, Vec3Df offset, Vec3Df pas,
+							  unsigned int resolution);
 };

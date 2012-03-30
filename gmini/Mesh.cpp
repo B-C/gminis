@@ -23,94 +23,67 @@ vector<Vec3Df> Mesh::getCube() const {
 	  cube[1][i] = max(cube[1][i], it->p[i]);
 	}
   }
-  // for(unsigned int j = 0 ; j<2 ; j++)
-  // 	for(unsigned int i = 0 ; i<3 ; i++)
-  // 	  cout << cube[j][i] <<endl;
-
   return cube;
 }
 
+Vec3D<int> Mesh::getIndice(Vec3Df p, Vec3Df o, Vec3Df pas) {
+  Vec3Df res = p-o;
+  res/=pas;
+  return Vec3D<int>(floor(res[0]), floor(res[1]), floor(res[2]));
+}
+
+int Mesh::getIndice(Vec3D<int> ind,	unsigned int r) {
+  return ind[2]*r*r +ind[1]*r +ind[0];
+}
+
+int Mesh::getIndice(Vec3Df p, Vec3Df o, Vec3Df pas,	unsigned int r) {
+  return getIndice(getIndice(p, o, pas), r);
+}
+
 void Mesh::simplifyMesh(unsigned int r){
-  r=16;
   vector<Vec3Df> cube = getCube();
-  float delta[3];
-
-  for(unsigned int i=0 ; i<3 ; i++) {
-	delta[i] = (cube[1][i]-cube[0][i])/r;
-  }
-
-  cout << delta[0] << " " << delta[1] << " "<< delta[2] << endl;
-  // Grid
-
+  Vec3Df delta = (cube[1]-cube[0])/(r-1);
   vector<Vertex> grid;
   grid.resize(pow(r,3));
 
+  // Generate grid
+  vector<int> nb;
+  nb.resize(grid.size());
   for(vector<Vertex>::const_iterator v=V.begin() ; v < V.end(); v++) {
-	int ind[3];
-	for(unsigned int i=0 ; i<3 ; i++)
-	  ind[i]=(int)(v->p[i]-cube[0][i])/delta[i];
-
-	int i= ind[2]*r*r +ind[1]*r +ind[0];
-
-	grid[i].p += v->p;
-	grid[i].n += v->n;
+  	int i= getIndice(v->p, cube[0], delta, r);
+  	grid[i].p += v->p;
+  	grid[i].n += v->n;
+	nb[i]++;
   }
 
-  for(vector<Vertex>::iterator v=grid.begin() ; v < grid.end(); v++) {
-	v->p.normalize();
-	v->n.normalize();
+  for(unsigned int i =0 ; i < grid.size() ; i++) {
+	grid[i].p/=nb[i];
+	grid[i].n.normalize();
   }
 
   // reindex triangle;
   for(vector<Triangle>::iterator t=T.begin() ; t < T.end(); t++) {
-	int indice[3];
+	Vec3D<int> indice[3];
 
-	for(int j=0 ; j<3 ; j++) {
-	  int ind[3];
-	  for(unsigned int i=0 ; i<3 ; i++)
-		ind[i]=(int)((V[t->v[j]].p[i]-cube[0][i])/delta[i]);
-
-	  indice[j]= ind[2] +ind[1]*r +ind[0]*r*r;
-	}
+	for(int j=0 ; j<3 ; j++)
+	  indice[j] = getIndice(V[t->v[j]].p, cube[0], delta);
 
 	if(indice[0] == indice[1] ||
 	   indice[0] == indice[2] ||
 	   indice[2] == indice[1]) {
-
-	  // cout << "vertex " << endl;
-	  // for(unsigned int j=0 ; j<3 ; j++){
-	  // 	for(unsigned int i = 0 ; i< 3 ; i++)
-	  // 	  cout << V[t->v[j]].p[i] << " ";
-	  // 	cout << endl;
-	  // }
-
-	  // cout << "\nvertex-cubemin " << endl;
-	  // for(unsigned int j=0 ; j<3 ; j++){
-	  // 	for(unsigned int i = 0 ; i< 3 ; i++)
-	  // 	  cout << V[t->v[j]].p[i] - cube[0][i]<< " ";
-	  // 	cout << endl;
-	  // }
-
-	  // cout << "vertex-cubemin / delta " << endl;
-	  // for(unsigned int j=0 ; j<3 ; j++){
-	  // 	cout "delta " << delta[j] << " - ";
-	  // 	for(unsigned int i = 0 ; i< 3 ; i++)
-	  // 	  cout << V[t->v[j]].p[i] << " ";
-	  // 	cout << endl;
-	  // }
-
-
-	  cout << indice[0] << " " << indice[1] << " "<< indice[2] << endl;
+	  //removed triangle
 	  T.erase(t);
+	  t--;
 	}
 	else {
+	  //reindex triangle on the grid
+	  for(int j=0 ; j<3 ; j++)
+		t->v[j] = getIndice(indice[j], r);
 	}
-	cout << endl << endl;
-	int toto;
-	cin >> toto;
   }
 
-
+  V=grid;
+  recomputeNormals();
 }
 
 void Mesh::compute1voisinages(){
@@ -127,10 +100,6 @@ void Mesh::compute1voisinages(){
 	voisins[i].sort();
 	voisins[i].unique();
   }
-}
-
-void Mesh::reset() {
-  V=V_orig;
 }
 
 void Mesh::smooth(float alpha) {
@@ -181,9 +150,7 @@ void Mesh::makeCube () {
 	  T[i].v[j] = indices[3*i+j];
 	}
   }
-
-  centerAndScaleToUnit ();
-  recomputeNormals ();
+  initPostLoad();
 }
 
 void Mesh::makeSphere(unsigned int resU, unsigned int resV) {
@@ -218,7 +185,6 @@ void Mesh::makeSphere(unsigned int resU, unsigned int resV) {
   }
 
   cout << sizeT << " " << t<<endl;
-
   centerAndScaleToUnit ();
   recomputeNormals ();
 }
@@ -242,9 +208,7 @@ void Mesh::loadOFF (const string & filename) {
 	  in >> T[i].v[j];
   }
   in.close ();
-  centerAndScaleToUnit ();
-  recomputeNormals ();
-  V_orig = V;
+  initPostLoad();
 }
 
 void Mesh::recomputeNormals () {

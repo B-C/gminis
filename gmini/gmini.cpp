@@ -94,7 +94,6 @@ void init (const char * modelFilename) {
   camera.resize (SCREENWIDTH, SCREENHEIGHT);
   mesh.loadOFF (modelFilename);
   mesh.compute1voisinages();
-  mesh.simplifyMesh(64); // XXX
   //mesh.makeSphere(10, 10);
   initLight ();
   glCullFace (GL_BACK);
@@ -184,6 +183,21 @@ void key (unsigned char keyPressed, int x, int y) {
 	break;
   case 's':
 	mesh.smooth(smooth_coeff);
+	break;
+  case '4':
+	mesh.reset();
+	mesh.simplifyMesh(64);
+	cout << "simplified 64x64" << endl;
+	break;
+  case '5':
+	mesh.reset();
+	mesh.simplifyMesh(32);
+	cout << "simplified 32x32" << endl;
+	break;
+  case '6':
+	mesh.reset();
+	mesh.simplifyMesh(16);
+	cout << "simplified 16x16" << endl;
 	break;
   case 'r':
 	mesh.reset();

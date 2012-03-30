@@ -2,8 +2,8 @@ LD       = g++
 CC       = gcc
 CXX      = g++
 CPPFLAGS =
-CFLAGS   = -I. -Wall -Werror -g -std=c99 -O3
-CXXFLAGS = -I. -Wall -Werror -g -O3
+CFLAGS   = -I. -Wall -Werror -Wno-unused-function -g -std=c99 -O3
+CXXFLAGS = -I. -Wall -Werror -Wno-unused-function -g -O3
 LDFLAGS  = -L/usr/X11R6/lib
 LDLIBS 	 = -lglut -lGLU -lGL -lm
 TARGET   = gmini
@@ -23,10 +23,8 @@ clean::
 ##################################################
 # Gestion des dépendances
 ifneq "$(MAKECMDGOALS)" "clean"
-
 -include $(patsubst %.cpp,%.d,$(SRC))
-
 endif
 
 %.d : %.cpp Makefile
-	$(CC) $(CXXFLAGS) $(CPPFLAGS) $(TARGET_ARCH) -MM -MF $@ -MP -MT $(patsubst %.cpp, %.o,$<) $<
+	@$(CC) $(CXXFLAGS) $(CPPFLAGS) $(TARGET_ARCH) -MM -MF $@ -MP -MT $(patsubst %.cpp, %.o,$<) $<
