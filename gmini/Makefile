@@ -18,7 +18,7 @@ $(TARGET): $(OBJ) Makefile
 	$(LD) $(LDFLAGS) $(OBJ) $(OUTPUT_OPTION) $(LDLIBS)
 
 clean::
-	@rm -f $(TARGET) $(OBJ) *.o *.d 
+	@rm -f $(TARGET) $(OBJ) *.o *.d
 
 ##################################################
 # Gestion des dépendances
