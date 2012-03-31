@@ -1,9 +1,10 @@
 #include <cstdlib>
+#include <cmath>
 #include "AmbientOcclusion.h"
 
 using namespace std;
 
-bool AmbientOcclusion::intersect(const Vertex &ray, const Vertex & a, 
+bool AmbientOcclusion::intersect(const Vertex &ray, const Vertex & a,
 								 const Vertex & b, const Vertex & c) const{
   Vec3Df u = (a.p-c.p);
   Vec3Df v = (b.p-c.p);
@@ -46,17 +47,14 @@ Vec3Df AmbientOcclusion::getColor(const Vertex & pos) {
   for(int i = 0 ; i < N ; i++) {
 	Vertex ray = pos;
 
-	float a, b, c;
-
-	a = getAleat();
-	b = getAleat();
-	c = getAleat();
-	Vec3Df aleat = Vec3Df(a, b, c);
-	aleat -= Vec3Df::dotProduct(ray.n, aleat)*ray.n; // do proper rotation of n
+	Vec3Df aleat = Vec3Df(random(), random(), random());
+	aleat -= Vec3Df::dotProduct(ray.n, aleat)*ray.n;//aleat _|_ n
+	aleat.normalize();
+	aleat*=tan(random()*angleMax);
 
 	ray.n += aleat;
 	ray.n.normalize();
-	
+
 	val+= (intersectTriangle(ray)? 0:1);
   }
   val/=N;
@@ -64,15 +62,15 @@ Vec3Df AmbientOcclusion::getColor(const Vertex & pos) {
   return  Vec3Df (val, val, val);
 }
 
-AmbientOcclusion::AmbientOcclusion(const Mesh &mesh, float R, 
-										float AngleMax, float VarMax, int N): 
-  mesh(mesh), R(R), AngleMax(AngleMax), N(N) {
+AmbientOcclusion::AmbientOcclusion(const Mesh &mesh, float R,
+								   float angleMax, int N):
+  mesh(mesh), R(R), angleMax(angleMax), N(N) {
   colors.resize(mesh.V.size());
 
   for(unsigned int i = 0 ; i < colors.size() ; i++)
 	colors[i] = getColor(mesh.V[i]);
 }
 
-float AmbientOcclusion::getAleat() {
-  return (((float)( rand() %(1<<30))) /(1<<29)-1) * VarMax;
+float AmbientOcclusion::random() {
+  return 2*(((float)rand())/RAND_MAX)-1;
 }

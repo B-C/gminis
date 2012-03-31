@@ -43,9 +43,8 @@ static PolygonMode polygonMode = Flat;
 // Ambient Occlusion
 static bool ambientOcclusion = false;
 static vector<Vec3Df> aoColor;
-static float R = 1;
-static const float AngleMax = 3.14/8;
-static float VarMax = 0.01;
+static float R = 0.09;
+static const float AngleMax = 3.14/2;
 static int N = 100;
 
 static Mesh mesh;
@@ -179,7 +178,7 @@ void enableAO() {
   glDisable (GL_LIGHTING);
   if(aoColor.size()==0) {
 	cout << "generating ambient occlusion" << endl;
-	aoColor = AmbientOcclusion(mesh, R, AngleMax, VarMax, N).getColors();
+	aoColor = AmbientOcclusion(mesh, R, AngleMax, N).getColors();
   }
   cout << "Ambient occlusion ON" << endl;
 }
