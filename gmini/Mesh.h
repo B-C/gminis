@@ -88,10 +88,6 @@ private:
 	V_orig = V;
 	T_orig = T;
   }
-  void postMeshUpdate() {
-	voisins.clear();
-	aoColors.clear();
-  }
 
   //smooth
   void compute1voisinages();

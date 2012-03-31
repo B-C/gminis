@@ -96,7 +96,7 @@ void Mesh::simplifyMesh(unsigned int r){
   }
 
   V=newV;
-  postMeshUpdate();
+  voisins.clear(); // Neightborhood had changed
   centerAndScaleToUnit();
   recomputeNormals();
 }
@@ -282,3 +282,4 @@ void Mesh::centerAndScaleToUnit () {
   for  (unsigned int i = 0; i < V.size (); i++)
 	V[i].p = (V[i].p - c) / maxD;
 }
+

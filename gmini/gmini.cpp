@@ -5,15 +5,6 @@
 // All rights reserved.
 // -------------------------------------------
 
-// -------------------------------------------
-// Disclaimer: this code is dirty in the
-// meaning that there is no attention paid to
-// proper class attribute access, memory
-// management or optimisation of any kind. It
-// is designed for quick-and-dirty testing
-// purpose.
-// -------------------------------------------
-
 #include <iostream>
 #include <fstream>
 #include <vector>
@@ -22,10 +13,12 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cmath>
+#include <ctime>
 
 #include <GL/glut.h>
 #include "Camera.h"
 #include "Mesh.h"
+#include "AmbientOcclusion.h"
 
 using namespace std;
 
@@ -46,6 +39,14 @@ static bool fullScreen = false;
 
 typedef enum {Wireframe, Flat, Gouraud} PolygonMode;
 static PolygonMode polygonMode = Flat;
+
+// Ambient Occlusion
+static bool ambientOcclusion = false;
+static vector<Vec3Df> aoColor;
+static float R = 1;
+static const float AngleMax = 3.14/8;
+static float VarMax = 0.01;
+static int N = 100;
 
 static Mesh mesh;
 
@@ -70,8 +71,6 @@ void usage () {
   printUsage ();
   exit (EXIT_FAILURE);
 }
-
-
 
 // ------------------------------------
 
@@ -102,7 +101,6 @@ void init (const char * modelFilename) {
   glClearColor (0.2f, 0.2f, 0.3f, 1.0f);
 }
 
-
 // ------------------------------------
 // Replace the code of this
 // functions for cleaning memory,
@@ -132,10 +130,14 @@ void draw () {
 	}
 	for (unsigned int j = 0; j < 3; j++) {
 	  const Vertex & v = V[T[i].v[j]];
+	  if(ambientOcclusion) {
+		Vec3Df color = aoColor[T[i].v[j]];
+		glColor3f(color[0], color[1], color[2]);
+	  }
 	  if (polygonMode == Gouraud)
 		glNormal3f (v.n[0], v.n[1], v.n[2]);
 	  glVertex3f (v.p[0], v.p[1], v.p[2]);
-	}
+	}	
   }
   glEnd ();
 }
@@ -166,6 +168,22 @@ void idle () {
   glutPostRedisplay ();
 }
 
+void disableAO() {
+  ambientOcclusion = false;
+  glEnable (GL_LIGHTING);
+  cout << "Ambient occlusion OFF" << endl;
+}
+
+void enableAO() {
+  ambientOcclusion = true;
+  glDisable (GL_LIGHTING);
+  if(aoColor.size()==0) {
+	cout << "generating ambient occlusion" << endl;
+	aoColor = AmbientOcclusion(mesh, R, AngleMax, VarMax, N).getColors();
+  }
+  cout << "Ambient occlusion ON" << endl;
+}
+
 void key (unsigned char keyPressed, int x, int y) {
 #define statMesh()									\
   cout << "nb triangle: " << mesh.T.size()			\
@@ -173,15 +191,25 @@ void key (unsigned char keyPressed, int x, int y) {
 
 #define lisse(n)								\
   mesh.smooth((n));								\
+  aoColor.clear();								\
+  disableAO();									\
   cout << "smooth - "#n << endl
 
 #define simplify(n)								\
   statMesh();									\
   mesh.simplifyMesh((n));						\
+  aoColor.clear();								\
+  disableAO();									\
   cout << "simplified "#n"x"#n << endl;			\
   statMesh()
 
   switch (keyPressed) {
+  case 'a':
+	if(ambientOcclusion)
+	  disableAO();
+	else
+	  enableAO();
+	break;
   case 'n':
 	if(polygonMode == Gouraud) {
 	  if(mesh.changeNormalComputation())
@@ -298,11 +326,9 @@ void motion (int x, int y) {
   }
 }
 
-
 void reshape(int w, int h) {
   camera.resize (w, h);
 }
-
 
 int main (int argc, char ** argv) {
   if (argc > 2) {
@@ -313,6 +339,7 @@ int main (int argc, char ** argv) {
   glutInitDisplayMode (GLUT_RGBA | GLUT_DEPTH | GLUT_DOUBLE);
   glutInitWindowSize (SCREENWIDTH, SCREENHEIGHT);
   window = glutCreateWindow ("gMini");
+  srand(time(NULL));
 
   init (argc == 2 ? argv[1] : "sphere.off");
   glutIdleFunc (idle);
