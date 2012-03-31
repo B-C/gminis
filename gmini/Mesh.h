@@ -1,6 +1,8 @@
 #pragma once
 
 #include <vector>
+#include <list>
+#include "Vec3D.h"
 
 class Vertex {
 public:
@@ -53,14 +55,14 @@ public:
   std::vector<Vertex> V;
   std::vector<Triangle> T;
 
+  Mesh() {
+	ponderate_normal = false;
+  }
+
   bool changeNormalComputation() {
 	ponderate_normal=!ponderate_normal;
 	recomputeNormals();
 	return ponderate_normal;
-  }
-
-  Mesh() {
-	ponderate_normal = false;
   }
 
   void loadOFF(const std::string & filename);
@@ -85,6 +87,10 @@ private:
 	recomputeNormals();
 	V_orig = V;
 	T_orig = T;
+  }
+  void postMeshUpdate() {
+	voisins.clear();
+	aoColors.clear();
   }
 
   //smooth

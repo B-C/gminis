@@ -2,12 +2,9 @@
 #include <fstream>
 #include <string>
 #include <cmath>
-#include <vector>
-#include <list>
 
 #include <iostream>
 
-#include "Vec3D.h"
 #include "Mesh.h"
 
 using namespace std;
@@ -94,12 +91,12 @@ void Mesh::simplifyMesh(unsigned int r){
 	else {
 	  //reindex triangle on the grid
 	  for(int j=0 ; j<3 ; j++)
-		t->v[j] = indMap[getIndice(indice[j], r)];
+	  	t->v[j] = indMap[getIndice(indice[j], r)];
 	}
   }
 
   V=newV;
-  voisins.clear();//neighborhood has changed;
+  postMeshUpdate();
   centerAndScaleToUnit();
   recomputeNormals();
 }
