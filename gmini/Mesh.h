@@ -47,10 +47,21 @@ private:
   std::vector<Vertex> V_orig;
   std::vector<Triangle> T_orig;
   std::vector<std::list<int> > voisins;
+  bool ponderate_normal;
 
 public:
   std::vector<Vertex> V;
   std::vector<Triangle> T;
+
+  bool changeNormalComputation() {
+	ponderate_normal=!ponderate_normal;
+	recomputeNormals();
+	return ponderate_normal;
+  }
+
+  Mesh() {
+	ponderate_normal = false;
+  }
 
   void loadOFF(const std::string & filename);
   void makeCube();

@@ -99,7 +99,7 @@ void Mesh::simplifyMesh(unsigned int r){
   }
 
   V=newV;
-  voisins.clear();//neighboorhood has changed;
+  voisins.clear();//neighborhood has changed;
   centerAndScaleToUnit();
   recomputeNormals();
 }
@@ -238,24 +238,33 @@ void Mesh::recomputeNormals () {
   for (unsigned int i = 0; i < T.size (); i++) {
 	Vec3Df e01 = V[T[i].v[1]].p -  V[T[i].v[0]].p;
 	Vec3Df e02 = V[T[i].v[2]].p -  V[T[i].v[0]].p;
-	Vec3Df e12 = V[T[i].v[2]].p -  V[T[i].v[1]].p;
-	e01.normalize(); e02.normalize(); e12.normalize();
 
-	Vec3Df n[3] = {
-	  Vec3Df::crossProduct (e01, e02),
-	  Vec3Df::crossProduct (e12,-e01),
-	  Vec3Df::crossProduct (-e02,-e12)
-	};
+	if(ponderate_normal) {
+	  Vec3Df e12 = V[T[i].v[2]].p -  V[T[i].v[1]].p;
+	  e01.normalize(); e02.normalize(); e12.normalize();
 
-	float angles[3] = {
-	  acos(Vec3Df::dotProduct(e01, e02)),
-	  acos(Vec3Df::dotProduct(-e01, e12)),
-	  acos(Vec3Df::dotProduct(-e12, -e02)),
-	};
+	  Vec3Df n[3] = {
+		Vec3Df::crossProduct (e01, e02),
+		Vec3Df::crossProduct (e12,-e01),
+		Vec3Df::crossProduct (-e02,-e12)
+	  };
 
-	for (unsigned int j = 0; j < 3; j++) {
-	  n[j].normalize();
-	  V[T[i].v[j]].n += angles[j]* n[j];
+	  float angles[3] = {
+		acos(Vec3Df::dotProduct(e01, e02)),
+		acos(Vec3Df::dotProduct(-e01, e12)),
+		acos(Vec3Df::dotProduct(-e12, -e02)),
+	  };
+
+	  for (unsigned int j = 0; j < 3; j++) {
+		n[j].normalize();
+		V[T[i].v[j]].n += angles[j]* n[j];
+	  }
+	}
+	else {
+        Vec3Df n = Vec3Df::crossProduct (e01, e02);
+        n.normalize ();
+        for (unsigned int j = 0; j < 3; j++)
+            V[T[i].v[j]].n += n;
 	}
   }
   for (unsigned int i = 0; i < V.size (); i++)

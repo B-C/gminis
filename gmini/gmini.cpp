@@ -182,6 +182,14 @@ void key (unsigned char keyPressed, int x, int y) {
   statMesh()
 
   switch (keyPressed) {
+  case 'n':
+	if(polygonMode == Gouraud) {
+	  if(mesh.changeNormalComputation())
+		cout << "Ponderated normals computation" << endl;
+	  else
+		cout << "Uniform normals computation" << endl;
+	}
+	break;
   case '1':
 	lisse(0.1);
 	break;
