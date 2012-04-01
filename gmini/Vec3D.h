@@ -244,6 +244,7 @@ public:
   // [0] = length
   // [1] = angle with z-axis
   // [2] = angle of projection into x,y, plane with x-axis
+  // angles between 0 and 2PI
   static inline Vec3D cartesianToPolar (const Vec3D &v) {
 	Vec3D polar;
 	polar[0] = v.getLength();
@@ -261,6 +262,15 @@ public:
 	  polar[2] = M_PI * 0.5f;
 	else
 	  polar[2] = -M_PI * 0.5;
+
+	for(unsigned i = 1 ; i <3 ; i++) {
+	  if(polar[i] < 0.0f)
+		polar[i]+=2*M_PI;
+	  else
+		while(polar[i] > 2*M_PI)
+		  polar[i]-=2*M_PI;
+	}
+
 	return polar;
   }
 

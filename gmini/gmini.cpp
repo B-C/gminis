@@ -19,6 +19,7 @@
 #include "Camera.h"
 #include "Mesh.h"
 #include "AmbientOcclusion.h"
+#include "Texture.h"
 
 using namespace std;
 
@@ -47,6 +48,9 @@ static float R = 0.09;
 static const float AngleMax = 3.14/2;
 static int N = 100;
 
+// Texture
+static Texture *texture;
+
 static Mesh mesh;
 
 void printUsage () {
@@ -73,6 +77,7 @@ void usage () {
 
 // ------------------------------------
 
+
 void initLight () {
   GLfloat light_position1[4] = {22.0f, 16.0f, 50.0f, 0.0f};
   GLfloat direction1[3] = {-52.0f,-16.0f,-50.0f};
@@ -88,10 +93,14 @@ void initLight () {
   glEnable (GL_LIGHTING);
 }
 
-void init (const char * modelFilename) {
+void init (const char * modelFilename, const char * textureFilename) {
   camera.resize (SCREENWIDTH, SCREENHEIGHT);
-  mesh.loadOFF (modelFilename);
-  //mesh.makeSphere(10, 10);
+  if(modelFilename)
+	mesh.loadOFF (modelFilename);
+  else
+	mesh.makeSphere(10, 10);
+  if(textureFilename)
+	texture = new Texture(textureFilename);
   initLight ();
   glCullFace (GL_BACK);
   glEnable (GL_CULL_FACE);
@@ -107,7 +116,7 @@ void init (const char * modelFilename) {
 // ------------------------------------
 
 void clear () {
-
+  delete texture;
 }
 
 // ------------------------------------
@@ -118,6 +127,7 @@ void clear () {
 void draw () {
   const vector<Vertex> & V = mesh.V;
   const vector<Triangle> & T = mesh.T;
+
   glBegin (GL_TRIANGLES);
   for (unsigned int i = 0; i < T.size (); i++) {
 	if (polygonMode != Gouraud) {
@@ -129,6 +139,8 @@ void draw () {
 	}
 	for (unsigned int j = 0; j < 3; j++) {
 	  const Vertex & v = V[T[i].v[j]];
+	  if(texture)
+		texture->mapSphere(v.p);
 	  if(ambientOcclusion) {
 		Vec3Df color = aoColor[T[i].v[j]];
 		glColor3f(color[0], color[1], color[2]);
@@ -203,6 +215,10 @@ void key (unsigned char keyPressed, int x, int y) {
   statMesh()
 
   switch (keyPressed) {
+  case 't':
+	if(texture)
+	  texture->turnOnOff();
+	break;
   case 'a':
 	if(ambientOcclusion)
 	  disableAO();
@@ -330,7 +346,7 @@ void reshape(int w, int h) {
 }
 
 int main (int argc, char ** argv) {
-  if (argc > 2) {
+  if (argc > 3) {
 	printUsage ();
 	exit (EXIT_FAILURE);
   }
@@ -340,7 +356,7 @@ int main (int argc, char ** argv) {
   window = glutCreateWindow ("gMini");
   srand(time(NULL));
 
-  init (argc == 2 ? argv[1] : "sphere.off");
+  init (argc >= 2 ? argv[1] : NULL, argc == 3 ? argv[2] : NULL);
   glutIdleFunc (idle);
   glutDisplayFunc (display);
   glutKeyboardFunc (key);

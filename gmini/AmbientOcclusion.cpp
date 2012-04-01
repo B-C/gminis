@@ -48,7 +48,8 @@ Vec3Df AmbientOcclusion::getColor(const Vertex & pos) {
 	Vertex ray = pos;
 
 	Vec3Df aleat = Vec3Df(random(), random(), random());
-	aleat -= Vec3Df::dotProduct(ray.n, aleat)*ray.n;//aleat _|_ n
+	
+	aleat -= Vec3Df::projectOntoVector(aleat, ray.n);
 	aleat.normalize();
 	aleat*=tan(random()*angleMax);
 
