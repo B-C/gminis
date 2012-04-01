@@ -5,17 +5,17 @@
 
 class AmbientOcclusion {
 private:
-  std::vector<Vec3Df> colors;
+  std::vector<float> colors;
   const Mesh &mesh;
   float R, angleMax;
   int N;
 
 public:
   AmbientOcclusion(const Mesh &mesh, float radius, float angleMax, int nb_ray);
-  const std::vector<Vec3Df>& getColors() { return colors; }
+  const std::vector<float>& getColors() { return colors; }
 
 private:
-  Vec3Df getColor(const Vertex &pos);
+  float getColor(const Vertex &pos);
   bool intersectTriangle(const Vertex &ray);
   float random();
 

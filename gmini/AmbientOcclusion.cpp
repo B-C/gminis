@@ -41,7 +41,7 @@ bool AmbientOcclusion::intersectTriangle(const Vertex &ray) {
   return false;
 }
 
-Vec3Df AmbientOcclusion::getColor(const Vertex & pos) {
+float AmbientOcclusion::getColor(const Vertex & pos) {
   float val=0;
 
   for(int i = 0 ; i < N ; i++) {
@@ -60,7 +60,7 @@ Vec3Df AmbientOcclusion::getColor(const Vertex & pos) {
   }
   val/=N;
 
-  return  Vec3Df (val, val, val);
+  return val;
 }
 
 AmbientOcclusion::AmbientOcclusion(const Mesh &mesh, float R,

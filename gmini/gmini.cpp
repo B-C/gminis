@@ -20,6 +20,7 @@
 #include "Mesh.h"
 #include "AmbientOcclusion.h"
 #include "Texture.h"
+#include "Brdf.h"
 
 using namespace std;
 
@@ -41,15 +42,15 @@ static bool fullScreen = false;
 typedef enum {Wireframe, Flat, Gouraud} PolygonMode;
 static PolygonMode polygonMode = Flat;
 
-// Ambient Occlusion
+// Ambient Occlusion  XXXX pas glop to much global +conflit avec brdf pour lighting off
 static bool ambientOcclusion = false;
-static vector<Vec3Df> aoColor;
+static vector<float> aoColor;
 static float R = 0.09;
 static const float AngleMax = 3.14/2;
 static int N = 100;
 
-// Texture
 static Texture *texture;
+static Brdf *brdf;
 
 static Mesh mesh;
 
@@ -84,6 +85,15 @@ void initLight () {
   GLfloat color1[4] = {0.5f, 1.0f, 0.5f, 1.0f};
   GLfloat ambient[4] = {0.3f, 0.3f, 0.3f, 0.5f};
 
+  vector<Vec3Df> brdfLight;
+  brdfLight.push_back(Vec3Df(220.0f,160.0f,-2000.0f));
+  //brdfLight.push_back(Vec3Df(-2200.0f,-1600.0f,-5000.0f));
+  brdf = new Brdf(brdfLight,
+				  Vec3Df(0.3, 1.0, 0.3),//color diff
+				  Vec3Df(1.0, 1.0, 1.0),//color spec
+				  Vec3Df(0.0, 0.0, 1.0),//color amb
+				  0.2, 1.0, 0.1, 100);//Kd, Ks, Ka, Alpha
+
   glLightfv (GL_LIGHT1, GL_POSITION, light_position1);
   glLightfv (GL_LIGHT1, GL_SPOT_DIRECTION, direction1);
   glLightfv (GL_LIGHT1, GL_DIFFUSE, color1);
@@ -98,7 +108,7 @@ void init (const char * modelFilename, const char * textureFilename) {
   if(modelFilename)
 	mesh.loadOFF (modelFilename);
   else
-	mesh.makeSphere(10, 10);
+	mesh.makeSphere(50, 50);
   if(textureFilename)
 	texture = new Texture(textureFilename);
   initLight ();
@@ -117,6 +127,7 @@ void init (const char * modelFilename, const char * textureFilename) {
 
 void clear () {
   delete texture;
+  delete brdf;
 }
 
 // ------------------------------------
@@ -141,14 +152,28 @@ void draw () {
 	  const Vertex & v = V[T[i].v[j]];
 	  if(texture)
 		texture->mapSphere(v.p);
-	  if(ambientOcclusion) {
-		Vec3Df color = aoColor[T[i].v[j]];
+
+	  if(ambientOcclusion || brdf->isOn()) {
+		Vec3Df posCam;
+		camera.getPos(posCam);
+
+		Vec3Df color=Vec3Df(0.0f, 0.0f, 0.0f);
+		if(ambientOcclusion) {
+		  if(brdf->isOn())
+			color = brdf->getColor(v.p, v.n, posCam,
+								   Brdf::Lambert|Brdf::Phong);
+		  color+= (brdf->Ka*aoColor[T[i].v[j]]) *brdf->colorAmbient;
+		}
+		else {
+		  color = brdf->getColor(v.p, v.n, posCam);
+		}
+
 		glColor3f(color[0], color[1], color[2]);
 	  }
 	  if (polygonMode == Gouraud)
 		glNormal3f (v.n[0], v.n[1], v.n[2]);
 	  glVertex3f (v.p[0], v.p[1], v.p[2]);
-	}	
+	}
   }
   glEnd ();
 }
@@ -215,9 +240,14 @@ void key (unsigned char keyPressed, int x, int y) {
   statMesh()
 
   switch (keyPressed) {
+  case 'b':
+	brdf->turnOnOff();
+	break;
   case 't':
 	if(texture)
 	  texture->turnOnOff();
+	else
+	  cout << "no textures" << endl;
 	break;
   case 'a':
 	if(ambientOcclusion)

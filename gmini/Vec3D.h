@@ -128,6 +128,12 @@ public:
 	p[2] += P[2];
 	return (*this);
   };
+  inline Vec3D& operator+= (T s) {
+	p[0] += s;
+	p[1] += s;
+	p[2] += s;
+	return (*this);
+  };
   inline Vec3D& operator-= (const Vec3D & P) {
 	p[0] -= P[0];
 	p[1] -= P[1];
