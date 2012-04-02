@@ -49,6 +49,10 @@ public:
 	glUniform1fARB (diffuseRefLocation, s);
   }
 
+  void setDepthEdgeThreshold (float s) {
+	glUniform1fARB (depthEdgeThresholdLocation, s);
+  }
+
   void setSpecRef (float s) {
 	glUniform1fARB (specRefLocation, s);
   }
@@ -62,11 +66,13 @@ private:
 			 const std::string & fragmentShaderFilename) {
 	loadFromFile (vertexShaderFilename, fragmentShaderFilename);
 	bind ();
-	diffuseRefLocation = getUniLoc ("diffuseRef");
+	//	diffuseRefLocation = getUniLoc ("diffuseRef");
+	depthEdgeThresholdLocation = getUniLoc ("depthEdgeThreshold");
 	specRefLocation = getUniLoc ("specRef");
 	shininessLocation = getUniLoc ("shininess");
   }
   GLint diffuseRefLocation;
+  GLint depthEdgeThresholdLocation;
   GLint specRefLocation;
   GLint shininessLocation;
 };
@@ -88,7 +94,8 @@ static Mesh mesh;
 static GLuint glID;
 
 static float diffuseRef = 0.8f;
-static float specRef = 1.5f;
+static float depthEdgeThreshold = 0.2f;
+static float specRef = 0.5f;
 static float shininess = 16.0f;
 
 typedef enum {Solid, Phong} RenderingMode;
@@ -146,6 +153,7 @@ inline void glDrawPoint (const Vertex & v) {
 
 void setShaderValues () {
   phongShader->setDiffuseRef (diffuseRef);
+  phongShader->setDepthEdgeThreshold (depthEdgeThreshold);
   phongShader->setSpecRef (specRef);
   phongShader->setShininess (shininess);
 }
@@ -371,6 +379,7 @@ void printUsage () {
 	   << " r: toggle Phong shading mode." << endl
 	   << " D/d: Increase/Decrease diffuse reflection" << endl
 	   << " S/s: Increase/Decrease specular reflection" << endl
+	   << " T/t: Increase/Decrease edge threshold" << endl
 	   << " +/-: Increase/Decrease shininess" << endl
 	   << " <drag>+<left button>: rotate model" << endl
 	   << " <drag>+<right button>: move model" << endl
@@ -419,6 +428,16 @@ void key (unsigned char keyPressed, int x, int y) {
 	if (diffuseRef > 0.1f) {
 	  diffuseRef -= 0.1f;
 	  phongShader->setDiffuseRef (diffuseRef);
+	}
+	break;
+  case 'T':
+	depthEdgeThreshold += 0.1f;
+	phongShader->setDepthEdgeThreshold (depthEdgeThreshold);
+	break;
+  case 't':
+	if (depthEdgeThreshold > 0.1f) {
+	  depthEdgeThreshold -= 0.1f;
+	  phongShader->setDepthEdgeThreshold (depthEdgeThreshold);
 	}
 	break;
   case 'S':

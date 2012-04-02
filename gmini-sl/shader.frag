@@ -20,30 +20,34 @@
 //
 // --------------------------------------------------------------------------
 
-uniform float diffuseRef;
 uniform float specRef;
 uniform float shininess;
+uniform float depthEdgeThreshold;
 
 varying vec4 P;
 varying vec3 N;
+varying float depth;
 
 void main (void) {
   gl_FragColor = vec4 (0.0, 0.0, 0.0, 1);
 
-  for (int i = 1; i < 4; i++) {
-	vec3 p = vec3 (gl_ModelViewMatrix * P);
-	vec3 n = normalize (gl_NormalMatrix * N);
-	vec3 l = normalize (gl_LightSource[i].position.xyz - p);
+  int i = 1;
 
-	vec3 r = reflect (-l, n);
-	vec3 v = normalize (-p);
+  vec3 p = vec3 (gl_ModelViewMatrix * P);
+  vec3 n = normalize (gl_NormalMatrix * N);
+  vec3 l = normalize (gl_LightSource[i].position.xyz - p);
 
-	float diffuse = max(dot(l, n), 0.0);
-	float spec =pow(max(dot(r, v), 0.0),shininess);
+  vec3 r = reflect (-l, n);
+  vec3 v = normalize (-p);
 
-	vec4 LightContribution =
-	  diffuseRef * diffuse * gl_LightSource[i].diffuse +
-	  specRef * spec * gl_LightSource[i].specular;
-	gl_FragColor += vec4 (LightContribution.xyz, 1);
+  float diffuse = max(dot(l, n), 0.0);
+  float spec =pow(max(dot(r, v), 0.0),shininess);
+
+  if(abs(dot(n, v)) > depthEdgeThreshold) {
+	if(spec >= specRef)
+	  gl_FragColor += vec4 (1.0,1.0,1.0, 1);
+	else
+	  gl_FragColor += vec4 (1.0,0.0,0.0, 1);
   }
+
 }

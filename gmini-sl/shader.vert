@@ -22,6 +22,7 @@
 
 varying vec4 P;
 varying vec3 N;
+varying float depth;
 
 void main(void)
 {
@@ -30,4 +31,5 @@ void main(void)
 
   gl_Position = ftransform ();
   gl_FrontColor = gl_Color;
+  depth = gl_Position.z;
 }
