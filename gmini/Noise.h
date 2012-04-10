@@ -2,6 +2,8 @@
 
 #include <vector>
 
+#include "Vec3D.h"
+
 class LCG {
 protected:
   unsigned int lcgCurrent;
@@ -24,6 +26,11 @@ private:
 public:
   Noise();
 
+  // virtual float operator()(float x, float y) =0;
+  // virtual float operator()(const Vec3Df &p) =0;
+  // virtual float operator()(const Vec3Df &p, float time) =0;
+  // virtual float operator()(const Vec3Df &p, const Vec3Df &n) =0;
+
   float uniform(); //[0,1]
   float uniform(float a, float b);
   float gaussianNoise(); //mean = 0, var = 1
@@ -31,6 +38,13 @@ public:
   unsigned int poisson(float mean);
 
   static float cosineInterpolation(float a, float b, float x);
+
+protected:
+  static float noiseTo01(float n) {
+	if(n<=-1.f) return 0.f;
+	if(n>=1.f) return 1.f;
+	return (n+1)/2;
+  }
 };
 
 /******************************************************************************/
@@ -39,17 +53,16 @@ class Wavelet: public Noise {
 private:
   float *noiseTileData;
   int noiseTileSize;
-  float gaussianClamp;
+  float gaussianVar;
 
 public:
   float s;
   int firstBand;
-  std::vector<float > w;
+  std::vector<float> w;
 
-  Wavelet(int n) {
-	generateNoiseTile(n, 4.f);
-	s = 0.f;
-	firstBand = -5;
+  Wavelet(int n, float s, int firstBand, float gaussianVar):
+	gaussianVar(gaussianVar), s(s), firstBand(firstBand){
+	generateNoiseTile(n);
 	setW([](unsigned i) ->float{ return 1.0f/pow(2,i); }, 5); //octave
   }
 
@@ -57,26 +70,13 @@ public:
 	delete[] noiseTileData;
   }
 
-  void generateNoiseTile(int n, float clamp=0.f) {
-	if(clamp > 0.f) gaussianClamp = clamp;
+  void generateNoiseTile(int n, float variance=0.f) {
+	if(variance > 0.f) gaussianVar = variance;
 	if (n%2) n++; // a tile size must be even
-	noiseTileSize = n;
+	if(n > 0) noiseTileSize = n;
 	generateNoiseTile();
   }
-
   void generateNoiseTile();
-
-  void varClamp(float i) {
-	generateNoiseTile(noiseTileSize, gaussianClamp+i);
-  }
-
-  void generateGreaterTile() {
-	generateNoiseTile(noiseTileSize+2);
-  }
-  void generateSmalerTile() {
-	if(noiseTileSize>2)
-	  generateNoiseTile(noiseTileSize-2);
-  }
 
   void setW(float (*f) (unsigned int), unsigned int nbands) {
 	if(nbands<=0)
@@ -87,23 +87,21 @@ public:
 	  w[i] = f(i);
   }
 
-  inline float multibandNoise(const Vec3Df &p) {
+  float operator()(const Vec3Df &p) {
 	return multibandNoise(p, NULL);
   }
 
-  inline float multibandNoise(const Vec3Df &p, const Vec3Df &normal) {
+  float operator()(const Vec3Df &p, const Vec3Df &normal) {
 	return multibandNoise(p, &normal);
   }
 
   int getNoiseTileSize() { return noiseTileSize; }
-  float getNoiseClamp() { return gaussianClamp; }
+  float getNoiseVar() { return gaussianVar; }
 
 private:
   float random() {
-  	float noise = Noise::gaussianNoise(gaussianClamp);
-
+  	float noise = Noise::gaussianNoise(gaussianVar);
   	return (noise<-1.f)?-1.f:((noise>1.f)?1.f:noise);
-	//	return uniform();
   }
 
   static int mod(int x, int n) {
@@ -123,14 +121,24 @@ private:
 
 class Perlin: Noise {
 private:
-  const int dim;
+  enum class Dimension { D2, D3, D4 };
+
 public:
   float fo, p;
   int n;
 
-  Perlin(int dimension, float fo, float persistence, float nbIterations):
-	dim(dimension), fo(fo), p(persistence), n(nbIterations) {}
-  float compute(float x, float y, float z=0, float t=0);
+  Perlin(float fo, float persistence, float nbIterations):
+	fo(fo), p(persistence), n(nbIterations) {}
+
+  float operator()(float x, float y) {
+	return compute(Dimension::D2, x, y);
+  }
+  float operator()(const Vec3Df &p) {
+	return compute(Dimension::D3, p[0], p[1], p[2]);
+  }
+  float operator()(const Vec3Df &p, float time) {
+	return compute(Dimension::D4, p[0], p[1], p[2], time);
+  }
 
 private:
   static inline float interpolate(float a, float b, float x) {
@@ -143,6 +151,8 @@ private:
   static float interpolatedNoise(float x, float y, int z=0, int t=0);
   static float interpolatedNoise(float x, float y, float z, int t=0);
   static float interpolatedNoise(float x, float y, float z, float t);
+
+  float compute(Dimension dim, float x, float y, float z=0.f, float t=0.f);
 };
 
 /******************************************************************************/
@@ -153,25 +163,27 @@ private:
   float a;
   float f0;
   float omega0;
-  float kernelRadius;
-  float impulseDensity;
   unsigned period;
   unsigned randomOffset;
+  float varCoeff;
+
+  float kernelRadius;
+  float impulseDensity;
+
+  float var;
 
 public:
   bool isotropic;
 
-  static float gabor(float K, float a, float f0, float omega0, float x, float y);
-
-  static unsigned int morton(unsigned x, unsigned y);
-
   Gabor(float K, float a, float f0, float omega0,
 		float number_of_impulses_per_kernel, unsigned period,
-		unsigned randomOffset, bool isotropic);
+		unsigned randomOffset, float varCoeff, bool isotropic);
 
   float operator()(float x, float y);
 
-  float cell(int i, int j, float x, float y);
-
+private:
   float variance() const;
+  static float gabor(float K, float a, float f0, float omega0, float x, float y);
+  static unsigned int morton(unsigned x, unsigned y);
+  float cell(int i, int j, float x, float y);
 };

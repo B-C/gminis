@@ -2,7 +2,6 @@
 #include <climits>
 #include <ctime>
 
-#include "Vec3D.h"
 #include "Noise.h"
 
 using namespace std;
@@ -211,7 +210,7 @@ float Wavelet::multibandNoise(const Vec3Df &p, const Vec3Df *normal) {
 	for (int i=0; i<=2; i++) {
 	  q[i]=2*p[i]*pow(2,firstBand+b);
 	}
-	result += (normal) ? w[b] * wProjectedNoise(q,*normal) : w[b] * wNoise(q);
+	result += w[b] * (normal?wProjectedNoise(q,*normal):wNoise(q));
   }
   for (int b=0; b<nbands; b++) {
 	variance+=w[b]*w[b];
@@ -219,7 +218,7 @@ float Wavelet::multibandNoise(const Vec3Df &p, const Vec3Df *normal) {
   /* Adjust the noise so it has a variance of 1. */
   if(variance)
 	result /= sqrt(variance * ((normal) ? 0.296 : 0.210));
-  return result;
+  return noiseTo01(result);
 }
 
 /******************************************************************************/
@@ -323,7 +322,7 @@ float Perlin::interpolatedNoise(float x, float y, float z, float t) {
   return interpolate(v1, v2, fractional_T);
 }
 
-float Perlin::compute(float x, float y, float z, float t) {
+float Perlin::compute(Dimension dim, float x, float y, float z, float t) {
   float frequency=fo;
   float amplitude=1.f;
 
@@ -331,13 +330,13 @@ float Perlin::compute(float x, float y, float z, float t) {
   for(int i=0 ; i<=n ; i++) {
 	float noise = 0.f;
 	switch(dim) {
-	case 2:
+	case Dimension::D2:
 	  noise = interpolatedNoise_smooth(x * frequency, y * frequency);
 	  break;
-	case 3:
+	case Dimension::D3:
 	  noise = interpolatedNoise(x * frequency, y * frequency, z*frequency);
 	  break;
-	case 4:
+	case Dimension::D4:
 	  noise = interpolatedNoise(x * frequency, y * frequency, z*frequency, t*frequency);
 	  break;
 	}
@@ -346,7 +345,7 @@ float Perlin::compute(float x, float y, float z, float t) {
 	amplitude*=p;
   }
 
-  return total * (1.0-p)/(1.0-amplitude);
+  return noiseTo01(total * (1.0-p)/(1.0-amplitude));
 }
 
 /******************************************************************************/
@@ -366,14 +365,13 @@ unsigned int Gabor::morton(unsigned x, unsigned y) {
 }
 
 Gabor::Gabor(float K, float a, float f0, float omega0,
-			 float number_of_impulses_per_kernel,
-			 unsigned period, unsigned randomOffset, bool isotropic):
+			 float nb,
+			 unsigned period, unsigned randomOffset, float varCoeff, bool isotropic):
   K(K), a(a), f0(f0), omega0(omega0), period(period),
-  randomOffset(randomOffset), isotropic(isotropic) {
-
-  kernelRadius = std::sqrt(-std::log(0.05) / M_PI) / a;
-  impulseDensity = number_of_impulses_per_kernel / (M_PI * kernelRadius * kernelRadius);
-}
+  randomOffset(randomOffset), varCoeff(varCoeff),
+  kernelRadius(sqrt(-std::log(0.05) / M_PI) / a),
+  impulseDensity(nb / (M_PI * kernelRadius * kernelRadius)),
+  var(variance()), isotropic(isotropic) {}
 
 float Gabor::operator()(float x, float y) {
   x /= kernelRadius, y /= kernelRadius;
@@ -387,7 +385,7 @@ float Gabor::operator()(float x, float y) {
 	  noise += cell(i + di, j + dj, frac_x - di, frac_y - dj);
 	}
   }
-  return noise;
+  return noiseTo01(noise/(varCoeff * sqrt(var)));
 }
 
 float Gabor::cell(int i, int j, float x, float y) {
