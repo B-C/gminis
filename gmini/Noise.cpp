@@ -1,14 +1,20 @@
-#include <cstdlib>
 #include <cmath>
+#include <climits>
+#include <ctime>
 
+#include "Vec3D.h"
 #include "Noise.h"
 
+using namespace std;
+
+Noise::Noise(): LCG(time(0)) {}
+
 float Noise::uniform() {
-  return uniform(-1.f,1.f);
+  return float(rand())/float(MAX_RAND);
 }
 
 float Noise::uniform(float a, float b) {
-  return (rand()/((float)RAND_MAX/(b-a)))+a;
+  return a + uniform()*(b-a);
 }
 
 float Noise::gaussianNoise() {

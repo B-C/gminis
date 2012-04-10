@@ -2,8 +2,6 @@
 
 #include <vector>
 
-#include "Vec3D.h"
-
 /*
   TODO:
   Gabor,
@@ -11,15 +9,32 @@
   Uniformize: noise.compute(Vec3Df, time); \\ noise.compute(Vec3Df) \\ noise.compute(Vec3Df, Vec3Df)
  */
 
-class Noise {
+class LCG {
+protected:
+  unsigned int lcgCurrent;
+
+public:
+  static const unsigned int MAX_RAND = (((1<<30) -1)<<1)+1; // 2^31-1
+
+  LCG(unsigned int seed): lcgCurrent(seed) {}
+
+  unsigned int rand() {
+  	lcgCurrent= lcgCurrent*1103515245u+12345u;
+  	return lcgCurrent&(MAX_RAND);
+  }
+};
+
+class Noise: public LCG {
 private:
   static const unsigned int gaussianNoiseIterations = 100;
 
 public:
-  static float uniform(); //[-1,1]
-  static float uniform(float a, float b);
-  static float gaussianNoise(); //mean = 0, var = 1
-  static float gaussianNoise(float var, float mean=0);
+  Noise();
+
+  float uniform(); //[0,1]
+  float uniform(float a, float b);
+  float gaussianNoise(); //mean = 0, var = 1
+  float gaussianNoise(float var, float mean=0);
 
   static float cosineInterpolation(float a, float b, float x);
 
