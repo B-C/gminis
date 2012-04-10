@@ -323,7 +323,7 @@ float Perlin::interpolatedNoise(float x, float y, float z, float t) {
 }
 
 float Perlin::compute(Dimension dim, float x, float y, float z, float t) {
-  float frequency=fo;
+  float frequency=1.f;
   float amplitude=1.f;
 
   float total = 0.f;
@@ -365,13 +365,12 @@ unsigned int Gabor::morton(unsigned x, unsigned y) {
 }
 
 Gabor::Gabor(float K, float a, float f0, float omega0,
-			 float nb,
-			 unsigned period, unsigned randomOffset, float varCoeff, bool isotropic):
-  K(K), a(a), f0(f0), omega0(omega0), period(period),
-  randomOffset(randomOffset), varCoeff(varCoeff),
-  kernelRadius(sqrt(-std::log(0.05) / M_PI) / a),
-  impulseDensity(nb / (M_PI * kernelRadius * kernelRadius)),
-  var(variance()), isotropic(isotropic) {}
+			 float nb, unsigned randomOffset, float varCoeff, bool isotropic):
+  K(K), a(a), f0(f0), nbImpulsesPerKernel(nb),
+  randomOffset(randomOffset), omega0(omega0),
+  varCoeff(varCoeff), isotropic(isotropic) {
+  computeKRadius();
+}
 
 float Gabor::operator()(float x, float y) {
   x /= kernelRadius, y /= kernelRadius;

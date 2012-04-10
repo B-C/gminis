@@ -4,6 +4,11 @@
 
 #include "Vec3D.h"
 
+/*
+  TODO:
+  Smooth for perlin 3/4D?
+*/
+
 class LCG {
 protected:
   unsigned int lcgCurrent;
@@ -95,8 +100,8 @@ public:
 	return multibandNoise(p, &normal);
   }
 
-  int getNoiseTileSize() { return noiseTileSize; }
-  float getNoiseVar() { return gaussianVar; }
+  int getNoiseTileSize() const { return noiseTileSize; }
+  float getNoiseVar() const { return gaussianVar; }
 
 private:
   float random() {
@@ -124,11 +129,11 @@ private:
   enum class Dimension { D2, D3, D4 };
 
 public:
-  float fo, p;
+  float p;
   int n;
 
-  Perlin(float fo, float persistence, float nbIterations):
-	fo(fo), p(persistence), n(nbIterations) {}
+  Perlin(float persistence, float nbIterations):
+	p(persistence), n(nbIterations) {}
 
   float operator()(float x, float y) {
 	return compute(Dimension::D2, x, y);
@@ -162,28 +167,62 @@ private:
   float K;
   float a;
   float f0;
-  float omega0;
-  unsigned period;
-  unsigned randomOffset;
-  float varCoeff;
+  float nbImpulsesPerKernel;
 
   float kernelRadius;
   float impulseDensity;
-
   float var;
 
 public:
+  unsigned randomOffset;
+  float omega0;
+  float varCoeff;
   bool isotropic;
 
   Gabor(float K, float a, float f0, float omega0,
-		float number_of_impulses_per_kernel, unsigned period,
+		float number_of_impulses_per_kernel,
 		unsigned randomOffset, float varCoeff, bool isotropic);
 
   float operator()(float x, float y);
 
+  void setK(float K) {
+	this->K = K;
+	var = variance();
+  }
+
+  void setA(float a) {
+	this->a = a;
+	computeKRadius();
+  }
+
+  void setF0(float f0) {
+	this->f0 = f0;
+	var= variance();
+  }
+
+  void setNbImpulsesPerKernel(float nb) {
+	nbImpulsesPerKernel = nb;
+	computeIDensity();
+  }
+
+  float getK() const { return K; }
+  float getA() const { return a; }
+  float getF0() const { return f0; }
+  float getNbImpulses() const { return nbImpulsesPerKernel; }
+
 private:
-  float variance() const;
   static float gabor(float K, float a, float f0, float omega0, float x, float y);
   static unsigned int morton(unsigned x, unsigned y);
   float cell(int i, int j, float x, float y);
+
+  void computeKRadius() {
+	kernelRadius=sqrt(-std::log(0.05) / M_PI) / a;
+	computeIDensity();
+  }
+
+  void computeIDensity() {
+	impulseDensity = nbImpulsesPerKernel/(M_PI*kernelRadius*kernelRadius);
+	var = variance();
+  }
+  float variance() const;
 };
