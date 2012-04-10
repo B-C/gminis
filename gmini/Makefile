@@ -3,7 +3,7 @@ CC       = gcc
 CXX      = g++
 CPPFLAGS =
 CFLAGS   = -I. -Wall -Werror -Wno-unused-function -g -std=c99 -O3
-CXXFLAGS = -I. -Wall -Werror -Wno-unused-function -Wno-unused-result -g -O3
+CXXFLAGS = -I. -Wall -Werror -Wno-unused-function -Wno-unused-result -std=c++0x -g -O3
 LDFLAGS  = -L/usr/X11R6/lib
 LDLIBS 	 = -lglut -lGLU -lGL -lm
 TARGET   = gmini
