@@ -59,7 +59,7 @@ void Wavelet::upsample( float *from, float *to, int n, int stride) {
   }
 }
 
-float Wavelet::wNoise(float p[3]) {
+float Wavelet::wNoise(const Vec3Df &p) {
   /* Non-projected 3D noise */
   int i, f[3], c[3], mid[3], n=noiseTileSize;
 
@@ -85,7 +85,7 @@ float Wavelet::wNoise(float p[3]) {
   return result;
 }
 
-float Wavelet::wProjectedNoise(float p[3], float normal[3]) {
+float Wavelet::wProjectedNoise(const Vec3Df &p, const Vec3Df &normal) {
   /* 3D noise projected onto 2D */
   int i, c[3], min[3], max[3], n=noiseTileSize;
 
@@ -185,14 +185,23 @@ void Wavelet::generateNoiseTile() {
   noiseTileData=noise;
 }
 
-float Wavelet::multibandNoise(float p[3], float s, float *normal, int firstBand, int nbands, float *w) {
-  float q[3], result=0, variance=0; int i, b;
-  for (b=0; b<nbands && s+firstBand+b<0; b++) {
-	for (i=0; i<=2; i++) {q[i]=2*p[i]*pow(2,firstBand+b);}
-	result += (normal) ? w[b] * wProjectedNoise(q,normal) : w[b] * wNoise(q);}
-  for (b=0; b<nbands; b++) {variance+=w[b]*w[b];}
+float Wavelet::multibandNoise(const Vec3Df &p, const Vec3Df *normal) {
+  Vec3Df q;
+  float result=0, variance=0;
+  int nbands = w.size();
+
+  for(int b=0; b<nbands && s+firstBand+b<0; b++) {
+	for (int i=0; i<=2; i++) {
+	  q[i]=2*p[i]*pow(2,firstBand+b);
+	}
+	result += (normal) ? w[b] * wProjectedNoise(q,*normal) : w[b] * wNoise(q);
+  }
+  for (int b=0; b<nbands; b++) {
+	variance+=w[b]*w[b];
+  }
   /* Adjust the noise so it has a variance of 1. */
-  if (variance) result /= sqrt(variance * ((normal) ? 0.296 : 0.210));
+  if(variance) 
+	result /= sqrt(variance * ((normal) ? 0.296 : 0.210));
   return result;
 }
 
