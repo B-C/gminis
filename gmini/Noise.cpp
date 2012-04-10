@@ -23,6 +23,13 @@ float Noise::gaussianNoise(float var, float mean) {
   return var*gaussianNoise()+mean;
 }
 
+float Noise::cosineInterpolation(float a, float b, float x) {
+  float ft = x * M_PI;
+  float f = (1 - cos(ft)) * 0.5;
+
+  return  a*(1-f) + b*f;
+}
+
 /******************************************************************************/
 
 #define ARAD 16
@@ -187,4 +194,53 @@ float Wavelet::multibandNoise(float p[3], float s, float *normal, int firstBand,
   /* Adjust the noise so it has a variance of 1. */
   if (variance) result /= sqrt(variance * ((normal) ? 0.296 : 0.210));
   return result;
+}
+
+/******************************************************************************/
+
+float Perlin::noise(int x, int y) {
+  int n = (x + y * 57);
+
+  n = (n<<13) ^ n;
+  return ( 1.0 - ( (n * (n * n * 15731 + 789221) + 1376312589) & 0x7fffffff) / 1073741824.0);
+}
+
+float Perlin::smoothNoise1(float x, float y) {
+  float corners = ( noise(x-1, y-1)+noise(x+1, y-1)+noise(x-1, y+1)+noise(x+1, y+1) ) / 16;
+  float sides   = ( noise(x-1, y)  +noise(x+1, y)  +noise(x, y-1)  +noise(x, y+1) ) /  8;
+  float center  =  noise(x, y) / 4;
+  return corners + sides + center;
+}
+
+float Perlin::interpolatedNoise_1(float x, float y) {
+
+  int integer_X    = x;
+  float fractional_X = x - integer_X;
+
+  int integer_Y    = y;
+  float fractional_Y = y - integer_Y;
+
+  float v1 = smoothNoise1(integer_X,     integer_Y);
+  float v2 = smoothNoise1(integer_X + 1, integer_Y);
+  float v3 = smoothNoise1(integer_X,     integer_Y + 1);
+  float v4 = smoothNoise1(integer_X + 1, integer_Y + 1);
+
+  float i1 = interpolate(v1 , v2 , fractional_X);
+  float i2 = interpolate(v3 , v4 , fractional_X);
+
+  return interpolate(i1 , i2 , fractional_Y);
+}
+
+float Perlin::noise2D(float x, float y) {
+  float frequency=fo;
+  float amplitude=1.f;
+
+  float total = 0.f;
+  for (int i=0; i<n; i++) {
+	total += interpolatedNoise_1(x * frequency, y * frequency) * amplitude;
+	frequency*=2;
+	amplitude*=p;
+  }
+
+  return total *(1-p)/(1-amplitude);
 }
