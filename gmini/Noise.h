@@ -4,6 +4,13 @@
 
 #include "Vec3D.h"
 
+/*
+  TODO:
+  Gabor,
+  Smooth for perlin 3/4D?
+  Uniformize: noise.compute(Vec3Df, time); \\ noise.compute(Vec3Df) \\ noise.compute(Vec3Df, Vec3Df)
+ */
+
 class Noise {
 private:
   static const unsigned int gaussianNoiseIterations = 100;
@@ -124,19 +131,25 @@ private:
 /******************************************************************************/
 
 class Perlin: Noise {
+private:
+  const int dim;
 public:
   float fo, p;
   int n;
 
-  Perlin(float fo, float persistence, float nbIterations):
-	fo(fo), p(persistence), n(nbIterations) {}
-  float noise2D(float x, float y);
+  Perlin(int dimension, float fo, float persistence, float nbIterations):
+	dim(dimension), fo(fo), p(persistence), n(nbIterations) {}
+  float compute(float x, float y, float z=0, float t=0);
 
 private:
-  static float noise(int x, int y);
-  static float smoothNoise1(float x, float y);
   static inline float interpolate(float a, float b, float x) {
 	return cosineInterpolation(a, b, x);
   }
-  static float interpolatedNoise_1(float x, float y);
+
+  static inline float noise(int x, int y=0, int z=0, int t=0);
+  static float smoothNoise(float x, float y);
+  static float interpolatedNoise_smooth(float x, float y);
+  static float interpolatedNoise(float x, float y, int z=0, int t=0);
+  static float interpolatedNoise(float x, float y, float z, int t=0);
+  static float interpolatedNoise(float x, float y, float z, float t);
 };
