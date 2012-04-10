@@ -2,13 +2,6 @@
 
 #include <vector>
 
-/*
-  TODO:
-  Gabor,
-  Smooth for perlin 3/4D?
-  Uniformize: noise.compute(Vec3Df, time); \\ noise.compute(Vec3Df) \\ noise.compute(Vec3Df, Vec3Df)
- */
-
 class LCG {
 protected:
   unsigned int lcgCurrent;
@@ -38,19 +31,6 @@ public:
   unsigned int poisson(float mean);
 
   static float cosineInterpolation(float a, float b, float x);
-
-  static float octave(unsigned int i) {
-	return 1.0f/pow(2,i);
-  }
-  static float constant(unsigned int i) {
-	return 1.0f;
-  }
-  static float invLinear(unsigned int i) {
-	return 1.0f/(i+1);
-  }
-  static float linear(unsigned int i) {
-	return 1.0f-i/10.f;
-  }
 };
 
 /******************************************************************************/
@@ -70,7 +50,7 @@ public:
 	generateNoiseTile(n, 4.f);
 	s = 0.f;
 	firstBand = -5;
-	setW(5, octave);
+	setW([](unsigned i) ->float{ return 1.0f/pow(2,i); }, 5); //octave
   }
 
   ~Wavelet() {
@@ -98,12 +78,7 @@ public:
 	  generateNoiseTile(noiseTileSize-2);
   }
 
-  void setW(float (*f) (unsigned int)) {
-	for(unsigned int i = 0 ; i < w.size() ; i++)
-	  w[i] = f(i);
-  }
-
-  void setW(unsigned int nbands, float (*f) (unsigned int)) {
+  void setW(float (*f) (unsigned int), unsigned int nbands) {
 	if(nbands<=0)
 	  return;
 
