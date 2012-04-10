@@ -36,6 +36,17 @@ float Noise::cosineInterpolation(float a, float b, float x) {
   return  a*(1-f) + b*f;
 }
 
+unsigned int Noise::poisson(float mean) {
+  float g = exp(-mean);
+  unsigned int em = 0;
+  double t = uniform(0, 1);
+  while (t > g) {
+	++em;
+	t *= uniform(0, 1);
+  }
+  return em;
+}
+
 /******************************************************************************/
 
 #define ARAD 16
@@ -336,4 +347,76 @@ float Perlin::compute(float x, float y, float z, float t) {
   }
 
   return total * (1.0-p)/(1.0-amplitude);
+}
+
+/******************************************************************************/
+
+float Gabor::gabor(float K, float a, float f0, float omega_0, float x, float y) {
+  float gaussian_envelop = K * std::exp(-M_PI * (a * a) * ((x * x) + (y * y)));
+  float sinusoidal_carrier = std::cos(2.0 * M_PI * f0 * ((x * std::cos(omega_0)) + (y * std::sin(omega_0))));
+  return gaussian_envelop * sinusoidal_carrier;
+}
+
+unsigned int Gabor::morton(unsigned x, unsigned y) {
+  unsigned z = 0;
+  for (unsigned i = 0; i < (sizeof(unsigned) * CHAR_BIT); ++i) {
+	z |= ((x & (1 << i)) << i) | ((y & (1 << i)) << (i + 1));
+  }
+  return z;
+}
+
+Gabor::Gabor(float K, float a, float f0, float omega0,
+			 float number_of_impulses_per_kernel,
+			 unsigned period, unsigned randomOffset, bool isotropic):
+  K(K), a(a), f0(f0), omega0(omega0), period(period),
+  randomOffset(randomOffset), isotropic(isotropic) {
+
+  kernelRadius = std::sqrt(-std::log(0.05) / M_PI) / a;
+  impulseDensity = number_of_impulses_per_kernel / (M_PI * kernelRadius * kernelRadius);
+}
+
+float Gabor::operator()(float x, float y) {
+  x /= kernelRadius, y /= kernelRadius;
+  float int_x = std::floor(x), int_y = std::floor(y);
+  float frac_x = x - int_x, frac_y = y - int_y;
+  int i = int(int_x), j = int(int_y);
+  float noise = 0.0;
+
+  for (int di = -1; di <= +1; ++di) {
+	for (int dj = -1; dj <= +1; ++dj) {
+	  noise += cell(i + di, j + dj, frac_x - di, frac_y - dj);
+	}
+  }
+  return noise;
+}
+
+float Gabor::cell(int i, int j, float x, float y) {
+  //unsigned s = (((unsigned(j) % period_) * period_) + (unsigned(i) % period_)) + random_offset_; // periodic noise
+  unsigned s = morton(i, j) + randomOffset; // nonperiodic noise
+  if (s == 0) s = 1;
+  lcgCurrent = s;
+  double number_of_impulses_per_cell = impulseDensity * kernelRadius * kernelRadius;
+  unsigned number_of_impulses = poisson(number_of_impulses_per_cell);
+  float noise = 0.0;
+
+  for (unsigned i = 0; i < number_of_impulses; ++i) {
+	float x_i = uniform(0, 1);
+	float y_i = uniform(0, 1);
+	float w_i = uniform(-1.0, +1.0);
+	float omega_0_i = uniform(0.0, 2.0 * M_PI);
+	float x_i_x = x - x_i;
+	float y_i_y = y - y_i;
+	if (((x_i_x * x_i_x) + (y_i_y * y_i_y)) < 1.0) {
+	  if(isotropic)
+		noise += w_i * gabor(K, a, f0, omega_0_i, x_i_x * kernelRadius, y_i_y * kernelRadius); // isotropic
+	  else
+		noise += w_i * gabor(K, a, f0, omega0, x_i_x * kernelRadius, y_i_y * kernelRadius); // anisotropic
+	}
+  }
+  return noise;
+}
+
+float Gabor::variance() const {
+  float integral_gabor_filter_squared = ((K * K) / (4.0 * a * a)) * (1.0 + std::exp(-(2.0 * M_PI * f0 * f0) / (a * a)));
+  return impulseDensity * (1.0 / 3.0) * integral_gabor_filter_squared;
 }

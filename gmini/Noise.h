@@ -35,6 +35,7 @@ public:
   float uniform(float a, float b);
   float gaussianNoise(); //mean = 0, var = 1
   float gaussianNoise(float var, float mean=0);
+  unsigned int poisson(float mean);
 
   static float cosineInterpolation(float a, float b, float x);
 
@@ -167,4 +168,35 @@ private:
   static float interpolatedNoise(float x, float y, int z=0, int t=0);
   static float interpolatedNoise(float x, float y, float z, int t=0);
   static float interpolatedNoise(float x, float y, float z, float t);
+};
+
+/******************************************************************************/
+
+class Gabor : Noise{
+private:
+  float K;
+  float a;
+  float f0;
+  float omega0;
+  float kernelRadius;
+  float impulseDensity;
+  unsigned period;
+  unsigned randomOffset;
+
+public:
+  bool isotropic;
+
+  static float gabor(float K, float a, float f0, float omega0, float x, float y);
+
+  static unsigned int morton(unsigned x, unsigned y);
+
+  Gabor(float K, float a, float f0, float omega0,
+		float number_of_impulses_per_kernel, unsigned period,
+		unsigned randomOffset, bool isotropic);
+
+  float operator()(float x, float y);
+
+  float cell(int i, int j, float x, float y);
+
+  float variance() const;
 };
