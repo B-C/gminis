@@ -19,10 +19,10 @@ vector<Vec3Df> Mesh::getCube() const {
   cube.resize(2);
   cube[0]=cube[1]=V[0].p;
 
-  for(vector<Vertex>::const_iterator it=V.begin() ; it < V.end(); it++) {
+  for(const Vertex &v : V) {
 	for(unsigned int i = 0 ; i<3 ; i++) {
-	  cube[0][i] = min(cube[0][i], it->p[i]);
-	  cube[1][i] = max(cube[1][i], it->p[i]);
+	  cube[0][i] = min(cube[0][i], v.p[i]);
+	  cube[1][i] = max(cube[1][i], v.p[i]);
 	}
   }
   return cube;
@@ -52,10 +52,10 @@ void Mesh::simplifyMesh(unsigned int r){
   vector<int> nb;
   nb.resize(grid.size());
 
-  for(vector<Vertex>::const_iterator v=V.begin() ; v < V.end(); v++) {
-  	int i= getIndice(v->p, cube[0], delta, r);
-  	grid[i].p += v->p;
-  	grid[i].n += v->n;
+  for(const Vertex &v : V) {
+  	int i= getIndice(v.p, cube[0], delta, r);
+  	grid[i].p += v.p;
+  	grid[i].n += v.n;
 	nb[i]++;
   }
 
@@ -75,7 +75,7 @@ void Mesh::simplifyMesh(unsigned int r){
   grid.clear();
 
   // reindex triangle;
-  for(vector<Triangle>::iterator t=T.begin() ; t < T.end(); t++) {
+  for(auto t=T.begin() ; t < T.end(); t++) {
 	Vec3D<int> indice[3];
 
 	for(int j=0 ; j<3 ; j++)
@@ -125,9 +125,8 @@ void Mesh::smooth(float alpha) {
 
   for(unsigned int i = 0 ; i < barycentre.size() ; i++) {
 	barycentre[i] = Vec3Df(0,0,0);
-	for(list<int>::iterator it=voisins[i].begin();
-		it != voisins[i].end(); it++) {
-	  barycentre[i] += V[*it].p;
+	for(auto it : voisins[i]) {
+	  barycentre[i] += V[it].p;
 	}
 	if(voisins[i].size() != 0) //check for when vertex in no triangle
 	  barycentre[i] /= voisins[i].size();
@@ -258,10 +257,10 @@ void Mesh::recomputeNormals () {
 	  }
 	}
 	else {
-        Vec3Df n = Vec3Df::crossProduct (e01, e02);
-        n.normalize ();
-        for (unsigned int j = 0; j < 3; j++)
-            V[T[i].v[j]].n += n;
+	  Vec3Df n = Vec3Df::crossProduct (e01, e02);
+	  n.normalize ();
+	  for (unsigned int j = 0; j < 3; j++)
+		V[T[i].v[j]].n += n;
 	}
   }
   for (unsigned int i = 0; i < V.size (); i++)
@@ -282,4 +281,3 @@ void Mesh::centerAndScaleToUnit () {
   for  (unsigned int i = 0; i < V.size (); i++)
 	V[i].p = (V[i].p - c) / maxD;
 }
-

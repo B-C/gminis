@@ -93,7 +93,7 @@ public:
   }
 
   float operator()(const Vec3Df &p) {
-	return multibandNoise(p, NULL);
+	return multibandNoise(p, nullptr);
   }
 
   float operator()(const Vec3Df &p, const Vec3Df &normal) {

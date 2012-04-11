@@ -13,7 +13,7 @@ unsigned char* Texture::ppmRead(const  char* filename, unsigned int* width, unsi
   fp = fopen( filename, "rb" );
   if ( !fp ) {
 	perror(filename);
-	return NULL;
+	return nullptr;
   }
 
   // Grab first two chars of the file and make sure that it has the
@@ -21,7 +21,7 @@ unsigned char* Texture::ppmRead(const  char* filename, unsigned int* width, unsi
   fgets(head, 70, fp);
   // if (strncmp(head, "P6", 2)) {
   //    fprintf(stderr, "%s: Not a raw PPM file\n", filename);
-  //    return NULL;
+  //    return nullptr;
   // }
 
   // Grab the three elements in the header (width, height, maxval).

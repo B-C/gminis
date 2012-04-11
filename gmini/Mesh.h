@@ -2,15 +2,16 @@
 
 #include <vector>
 #include <list>
+#include <array>
 #include "Vec3D.h"
 
 class Vertex {
 public:
-  inline Vertex () {}
-  inline Vertex (const Vec3Df & p, const Vec3Df & n) : p (p), n (n) {}
-  inline Vertex (const Vertex & v) : p (v.p), n (v.n) {}
-  inline virtual ~Vertex () {}
-  inline Vertex & operator= (const Vertex & v) {
+  Vertex () = default;
+  Vertex (const Vec3Df & p, const Vec3Df & n) : p (p), n (n) {}
+  Vertex (const Vertex & v) : p(v.p), n(v.n) {}
+  virtual ~Vertex () {}
+  Vertex & operator= (const Vertex & v) {
 	p = v.p;
 	n = v.n;
 	return (*this);
@@ -21,43 +22,39 @@ public:
 
 class Triangle {
 public:
-  inline Triangle () {
-	v[0] = v[1] = v[2] = 0;
+  Triangle () {
+	for(int & i : v)
+	  i = 0;
   }
-  inline Triangle (const Triangle & t) {
-	v[0] = t.v[0];
-	v[1] = t.v[1];
-	v[2] = t.v[2];
-  }
-  inline Triangle (unsigned int v0, unsigned int v1, unsigned int v2) {
+  Triangle (const Triangle & t) : v(t.v) {}
+  Triangle (unsigned int v0, unsigned int v1, unsigned int v2) {
 	v[0] = v0;
 	v[1] = v1;
 	v[2] = v2;
   }
-  inline virtual ~Triangle () {}
-  inline Triangle & operator= (const Triangle & t) {
-	v[0] = t.v[0];
-	v[1] = t.v[1];
-	v[2] = t.v[2];
+
+  virtual ~Triangle () {}
+
+  Triangle & operator= (const Triangle & t) {
+	v = t.v;
 	return (*this);
   }
-  unsigned int v[3];
+
+  std::array<int, 3> v;// = {0, 0, 0};, not yet supported in gcc
 };
 
 class Mesh {
 private:
   std::vector<Vertex> V_orig;
   std::vector<Triangle> T_orig;
-  std::vector<std::list<int> > voisins;
+  std::vector<std::list<unsigned int>> voisins;
   bool ponderate_normal;
 
 public:
   std::vector<Vertex> V;
   std::vector<Triangle> T;
 
-  Mesh() {
-	ponderate_normal = false;
-  }
+  Mesh() :ponderate_normal(false) {}
 
   bool changeNormalComputation() {
 	ponderate_normal=!ponderate_normal;

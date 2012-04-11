@@ -25,9 +25,8 @@ Vec3Df Brdf::getColor(const Vec3Df &p, const Vec3Df &n,
   Vec3Df ra=(posCam-p);
   ra.normalize();
 
-  for(vector<Vec3Df>::const_iterator light = posLights.begin() ;
-	  light < posLights.end() ; light++) {
-	Vec3Df ir=(p-*light);
+  for(const auto light : posLights) {
+	Vec3Df ir=(p-light);
 	ir.normalize();
 
 	if(type&Ambient)

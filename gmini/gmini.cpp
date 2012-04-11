@@ -213,40 +213,46 @@ void idle () {
   glutPostRedisplay ();
 }
 
-void disableAO() {
-  ambientOcclusion = false;
-  glEnable (GL_LIGHTING);
-  cout << "Ambient occlusion OFF" << endl;
-}
-
-void enableAO() {
-  ambientOcclusion = true;
-  glDisable (GL_LIGHTING);
-  if(aoColor.size()==0) {
-	cout << "generating ambient occlusion" << endl;
-	aoColor = AmbientOcclusion(mesh, R, AngleMax, N).getColors();
-  }
-  cout << "Ambient occlusion ON" << endl;
-}
-
 void key (unsigned char keyPressed, int x, int y) {
-#define statMesh()									\
-  cout << "nb triangle: " << mesh.T.size()			\
-	   << " - nb Vertex: " << mesh.V.size() << endl
 
-#define lisse(n)								\
-  mesh.smooth((n));								\
-  aoColor.clear();								\
-  disableAO();									\
-  cout << "smooth - "#n << endl
+  /* helpers */
+  static const auto disableAO = []() {
+	ambientOcclusion = false;
+	glEnable (GL_LIGHTING);
+	cout << "Ambient occlusion OFF" << endl;
+  };
 
-#define simplify(n)								\
-  statMesh();									\
-  mesh.simplifyMesh((n));						\
-  aoColor.clear();								\
-  disableAO();									\
-  cout << "simplified "#n"x"#n << endl;			\
-  statMesh()
+  static const auto enableAO = []() {
+	ambientOcclusion = true;
+	glDisable (GL_LIGHTING);
+	if(aoColor.size()==0) {
+	  cout << "generating ambient occlusion" << endl;
+	  aoColor = AmbientOcclusion(mesh, R, AngleMax, N).getColors();
+	}
+	cout << "Ambient occlusion ON" << endl;
+  };
+
+  static const auto statMesh = [](){
+	cout << "nb triangle: " << mesh.T.size()
+	<< " - nb Vertex: " << mesh.V.size() << endl;
+  };
+
+  static const auto smooth = [disableAO](float alpha){
+	mesh.smooth(alpha);
+	aoColor.clear();
+	disableAO();
+	cout << "smooth - " << alpha << endl;
+  };
+
+  static const auto simplify = [statMesh, disableAO](unsigned int res){
+	statMesh();
+	mesh.simplifyMesh(res);
+	aoColor.clear();
+	disableAO();
+	cout << "simplified " << res << "x" << res << endl;
+	statMesh();
+  };
+  /*******/
 
   switch (keyPressed) {
   case 'b':
@@ -273,13 +279,13 @@ void key (unsigned char keyPressed, int x, int y) {
 	}
 	break;
   case '1':
-	lisse(0.1);
+	smooth(0.1);
 	break;
   case '2':
-	lisse(0.5);
+	smooth(0.5);
 	break;
   case '3':
-	lisse(1);
+	smooth(1);
 	break;
   case '4':
 	simplify(64);
@@ -330,10 +336,6 @@ void key (unsigned char keyPressed, int x, int y) {
 	break;
   }
   idle ();
-
-#undef statMesh
-#undef lisse
-#undef simplify
 }
 
 void mouse (int button, int state, int x, int y) {
@@ -393,9 +395,9 @@ int main (int argc, char ** argv) {
   glutInitDisplayMode (GLUT_RGBA | GLUT_DEPTH | GLUT_DOUBLE);
   glutInitWindowSize (SCREENWIDTH, SCREENHEIGHT);
   window = glutCreateWindow ("gMini");
-  srand(time(NULL));
+  srand(time(nullptr));
 
-  init (argc >= 2 ? argv[1] : NULL, argc == 3 ? argv[2] : NULL);
+  init (argc >= 2 ? argv[1] : nullptr, argc == 3 ? argv[2] : nullptr);
   glutIdleFunc (idle);
   glutDisplayFunc (display);
   glutKeyboardFunc (key);
