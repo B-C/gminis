@@ -76,6 +76,7 @@ public:
   void reset() {
 	V = V_orig;
 	T = T_orig;
+	voisins.clear();
   }
 
 private:
