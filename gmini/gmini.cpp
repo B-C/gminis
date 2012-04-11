@@ -62,8 +62,17 @@ void printUsage () {
 	   << "Usage : ./gmini [<file.off>]" << endl
 	   << "Keyboard commands" << endl
 	   << "------------------" << endl
-	   << " ?: Print help" << endl
 	   << " w: Toggle Wireframe/Flat/Gouraud Rendering Mode" << endl
+	   << " b: brdf on/off" << endl
+	   << " t: texture on/off" << endl
+	   << " a: ambient occlusion on/off" << endl
+	   << " n: normal computation" << endl
+	   << " 1-2-3: smooth, alpha = 0.1/0.5/1" << endl
+	   << " 4-5-6: simplify, res = 64/35/16 " << endl
+	   << " 8: subdivide" << endl
+	   << " r: reset Mesh" << endl
+	   << "------------------" << endl
+	   << " ?: Print this help" << endl
 	   << " f: Toggle full screen mode" << endl
 	   << " <drag>+<left button>: rotate model" << endl
 	   << " <drag>+<right button>: move model" << endl
