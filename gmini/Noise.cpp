@@ -323,7 +323,7 @@ float Perlin::interpolatedNoise(float x, float y, float z, float t) {
 }
 
 float Perlin::compute(Dimension dim, float x, float y, float z, float t) {
-  float frequency=1.f;
+  float frequency=f0;
   float amplitude=1.f;
 
   float total = 0.f;

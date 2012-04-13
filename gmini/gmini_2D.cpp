@@ -38,9 +38,8 @@ static float timeZ = 0.f;
 typedef enum {WaveletNoise, PerlinNoise, PerlinMarble, GaborNoise} NoiseType;
 static NoiseType noiseType = PerlinNoise;
 static Wavelet wNoise(20, 0.f, -5, 4.f);
-static Perlin perlin(0.5f, 4);
+static Perlin perlin(0.5f, 4, 0.1);
 static Gabor gabor(1.f, 0.05, 0.0625, M_PI/4.0, 16, std::time(0), 3.f, false);
-static float f0 = 1.f;
 
 void printUsage () {
   cerr << endl
@@ -54,14 +53,14 @@ void printUsage () {
 	   << " m: Perlin, marble effect" << endl
 	   << " w: Wavelet noise" << endl
 	   << " g: Gabor noise" << endl
-	   << " s/S: increase/decrease scale" << endl
 	   << " t/T: activate/increase/decrease time" << endl
 	   << " ?: Print help" << endl
 	   << " q, <esc>: Quit" << endl
 	   << "------------------" << endl;
   if(noiseType == PerlinNoise || noiseType == PerlinMarble)
 	cerr << " n/N: increase/decrease nb iterations/octaves" << endl
-		 << " a/A: increase/decrease persistence" << endl;
+		 << " a/A: increase/decrease persistence" << endl
+		 << " f/F: increase/decrease scale" << endl;
   else if (noiseType == WaveletNoise)
 	cerr << " r: recompute tile" << endl
 		 << " n/N: increase/decrease tile size" << endl
@@ -124,9 +123,9 @@ void draw () {
   unsigned int it = 0;
   for(unsigned int i = 0 ; i < SCREENHEIGHT ; i++)
 	for(unsigned int j = 0 ; j < SCREENWIDTH ; j++) {
-	  float x = float(i)*f0, y = float(j)*f0;
+	  float x = float(i), y = float(j);
 	  if(noiseType == PerlinMarble) {
-		float noise = perlin({x/10, y/10, timeZ});
+		float noise = perlin({x, y, timeZ});
 		double valeur = 1 - sqrt(fabs(sin(2 * 3.141592 *noise)));
 
 		for (int k=0; k<3; k++)
@@ -137,7 +136,7 @@ void draw () {
 		if(noiseType == WaveletNoise)
 		  noise = wNoise({x, y, timeZ});
 		else if(noiseType == PerlinNoise)
-		  noise = perlin({x/10, y/10, timeZ});
+		  noise = perlin({x, y, timeZ});
 		else if(noiseType == GaborNoise)
 		  noise = gabor(x, y);
 
@@ -194,10 +193,15 @@ bool noiseKey(unsigned char keyPressed) {
 	  if(perlin.p <= 0.9)
 		perlin.p+=0.1;
 	  break;
+	case 'f':
+	case 'F':
+	  perlin.f0*= keyPressed=='S'?2.f:0.5f;
+	  break;
 	default:
 	  return false;
 	}
 	cout << "Perlin: " << endl
+		 << "\t f0: " << perlin.f0 << endl
 		 << "\t" << perlin.n << " iterations/octaves" << endl
 		 << "\tpersistence: " << perlin.p << endl;
   }
@@ -323,11 +327,6 @@ void key (unsigned char keyPressed, int x, int y) {
 	  timeCounter = 1.f;
 	else
 	  timeCounter *=2.f;
-	break;
-  case 's':
-  case 'S':
-	f0*= keyPressed=='S'?2.f:0.5f;
-	cout << "Scale: " << f0 << endl;
 	break;
   case 'p':
 	noiseType = PerlinNoise;

@@ -131,9 +131,10 @@ private:
 public:
   float p;
   int n;
+  float f0;
 
-  Perlin(float persistence, float nbIterations):
-	p(persistence), n(nbIterations) {}
+  Perlin(float persistence, float nbIterations, float f0):
+	p(persistence), n(nbIterations), f0(f0) {}
 
   float operator()(float x, float y) {
 	return compute(Dimension::D2, x, y);
