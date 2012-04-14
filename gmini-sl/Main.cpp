@@ -38,44 +38,9 @@
 #include "Mesh.h"
 #include "Camera.h"
 
+#include "NoiseShaders.h"
+
 using namespace std;
-
-class PhongShader : public Shader {
-public:
-  PhongShader () { init ("shader.vert", "shader.frag"); }
-  inline virtual ~PhongShader () {}
-
-  void setDiffuseRef (float s) {
-	glUniform1fARB (diffuseRefLocation, s);
-  }
-
-  void setDepthEdgeThreshold (float s) {
-	glUniform1fARB (depthEdgeThresholdLocation, s);
-  }
-
-  void setSpecRef (float s) {
-	glUniform1fARB (specRefLocation, s);
-  }
-
-  void setShininess (float s) {
-	glUniform1fARB (shininessLocation, s);
-  }
-
-private:
-  void init (const std::string & vertexShaderFilename,
-			 const std::string & fragmentShaderFilename) {
-	loadFromFile (vertexShaderFilename, fragmentShaderFilename);
-	bind ();
-	//	diffuseRefLocation = getUniLoc ("diffuseRef");
-	depthEdgeThresholdLocation = getUniLoc ("depthEdgeThreshold");
-	specRefLocation = getUniLoc ("specRef");
-	shininessLocation = getUniLoc ("shininess");
-  }
-  GLint diffuseRefLocation;
-  GLint depthEdgeThresholdLocation;
-  GLint specRefLocation;
-  GLint shininessLocation;
-};
 
 static GLint window;
 static unsigned int SCREENWIDTH = 1024;
@@ -86,17 +51,15 @@ static bool mouseMovePressed = false;
 static bool mouseZoomPressed = false;
 static int lastX=0, lastY=0, lastZoom=0;
 static unsigned int FPS = 0;
-static bool fullScreen = false;
 
-static PhongShader * phongShader;
+static PhongShader * shader;
+static PerlinShader * perlinShader;
+static GaborShader * gaborShader;
+static WaveletShader * waveletShader;
 
 static Mesh mesh;
 static GLuint glID;
 
-static float diffuseRef = 0.8f;
-static float depthEdgeThreshold = 0.2f;
-static float specRef = 0.5f;
-static float shininess = 16.0f;
 
 typedef enum {Solid, Phong} RenderingMode;
 static RenderingMode mode = Phong;
@@ -151,11 +114,59 @@ inline void glDrawPoint (const Vertex & v) {
   glDrawPoint (v.getPos (), v.getNormal ());
 }
 
+// perlin properties
+static int nbOctave = 4;
+static float persistence = 0.5;
+static int f0 = 1.0;
+static float perlinTime = 0;
+
+// gabor properties
+static float K = 1.0f;
+static float omega = 0.0;
+static float a = 0.05;
+static bool iso = true;
+
+// Phong properties
+static float diffuseRef = 0.8f;
+static float specRef = 1.5f;
+static float shininess = 16.0f;
+
+// wavelet properties
+static int nbands = 1;
+static int firstBand = -1;
+static bool noiseProjected = false;
+static float s = 0.0;
+
 void setShaderValues () {
-  phongShader->setDiffuseRef (diffuseRef);
-  phongShader->setDepthEdgeThreshold (depthEdgeThreshold);
-  phongShader->setSpecRef (specRef);
-  phongShader->setShininess (shininess);
+
+  // wavelet
+  if (shader == waveletShader) {
+	waveletShader->setnBandsRef (nbands);
+	waveletShader->setfirstBand (firstBand);
+	waveletShader->setNoiseprojected (noiseProjected);
+	waveletShader->sets (s);
+  }
+
+  // perlin
+  if (shader == perlinShader) {
+	perlinShader->setnbOctave (nbOctave);
+	perlinShader->setPersistence (persistence);
+	perlinShader->setF0 (f0);
+	perlinShader->setTime(perlinTime);
+  }
+
+  // gabor
+  if (shader == gaborShader) {
+	gaborShader->setKRef (K);
+	gaborShader->setOmegaRef (omega);
+	gaborShader->setARef (a);
+	gaborShader->setIsoRef (iso);
+  }
+
+  // brdf
+  shader->setDiffuseRef (diffuseRef);
+  shader->setSpecRef (specRef);
+  shader->setShininess (shininess);
 }
 
 void drawMesh (bool flat) {
@@ -189,7 +200,7 @@ void drawSolidModel () {
   glPolygonOffset (1.0, 1.0);
   glEnable (GL_POLYGON_OFFSET_FILL);
   glShadeModel (GL_FLAT);
-  phongShader->bind ();
+  shader->bind ();
   drawMesh (true);
   glPolygonMode (GL_FRONT, GL_LINE);
   glPolygonMode (GL_BACK, GL_FILL);
@@ -203,8 +214,6 @@ void drawSolidModel () {
 }
 
 void drawPhongModel () {
-  //    phongShader->bind ();
-  //setShaderValues ();
   glCallList (glID);
 }
 
@@ -298,7 +307,7 @@ void init (const std::string & filename) {
   }
 
   camera.resize (SCREENWIDTH, SCREENHEIGHT);
-  glClearColor (0.2f, 0.2f, 0.3f, 1.0f);
+  glClearColor (0.0, 0.0, 0.0, 1.0);
 
   initLights ();
   setSingleSpotLight ();
@@ -307,9 +316,18 @@ void init (const std::string & filename) {
   initGLList ();
 
   try {
-	phongShader = new PhongShader;
-	phongShader->bind ();
+	cout << "Binding shaders...\n";
+	cout << "Perlin...\n";
+	perlinShader = new PerlinShader;
+	cout << "Gabor...\n";
+	gaborShader = new GaborShader;
+	cout << "Wavelet...\n";
+	waveletShader = new WaveletShader;
+	cout << "Setting default values...\n";
+	shader = perlinShader;
+	shader->bind();
 	setShaderValues ();
+	cout << "Current shader is Perlin\n";
   } catch (ShaderException e) {
 	cerr << e.getMessage () << endl;
 	exit (EXIT_FAILURE);
@@ -317,7 +335,9 @@ void init (const std::string & filename) {
 }
 
 void clear () {
-  delete phongShader;
+  delete perlinShader;
+  delete gaborShader;
+  delete waveletShader;
   glDeleteLists (glID, 1);
 }
 
@@ -335,6 +355,7 @@ void display () {
 	drawPhongModel ();
   glFlush ();
   glutSwapBuffers ();
+  setShaderValues();
 }
 
 void idle () {
@@ -342,7 +363,8 @@ void idle () {
   static unsigned int counter = 0;
   counter++;
   float currentTime = glutGet ((GLenum)GLUT_ELAPSED_TIME);
-  if (currentTime - lastTime >= 1000.0f) {
+  float elapsed = currentTime - lastTime;
+  if (elapsed >= 1000.0f) {
 	FPS = counter;
 	counter = 0;
 	static char FPSstr [128];
@@ -357,6 +379,7 @@ void idle () {
 	lastTime = currentTime;
 
   }
+  perlinTime+=counter?elapsed/(float)(counter*10000):0;
   glutPostRedisplay ();
 }
 
@@ -372,15 +395,38 @@ void printUsage () {
 	   << "Keyboard commands" << endl
 	   << "--------------------------------------" << endl
 	   << " ?: Print help" << endl
-	   << " w: Toggle wireframe Mode" << endl
-	   << " g: Toggle Gouraud shading Mode" << endl
-	   << " f: Toggle full screen mode" << endl
-	   << " e: toggle solid mode." << endl
-	   << " r: toggle Phong shading mode." << endl
-	   << " D/d: Increase/Decrease diffuse reflection" << endl
-	   << " S/s: Increase/Decrease specular reflection" << endl
-	   << " T/t: Increase/Decrease edge threshold" << endl
-	   << " +/-: Increase/Decrease shininess" << endl
+	   << endl
+	   << " G: Switch to Gabor noise" << endl
+	   << " A: (GABOR) increase the a parameter" << endl
+	   << " a: (GABOR) decrease the a parameter" << endl
+	   << " i: (GABOR) isometric noise <--> anisometric noise" << endl
+	   << " w: (GABOR) increase the omega0 (only useful with anisotropic noise)" << endl
+	   << endl
+	   << " P: Switch to Perlin noise" << endl
+	   << " O: (PERLIN) increase the number of octaves" << endl
+	   << " o: (PERLIN) decrease the number of octaves" << endl
+	   << " E: (PERLIN) increase the persistence" << endl
+	   << " e: (PERLIN) decrease the persistence" << endl
+	   << " F: (PERLIN) increase the frequence" << endl
+	   << " f: (PERLIN) decrease the frequence" << endl
+	   <<endl
+	   << " W: Switch to Wavelet noise" << endl
+	   << " B: (WAVELET) increase the number of bands" << endl
+	   << " b: (WAVELET) decrease the number of bands" << endl
+	   << " R: (WAVELET) increase the first band" << endl
+	   << " r: (WAVELET) decrease the first band" << endl
+	/*<< " T: (WAVELET) increase the tile size" << endl
+	  << " t: (WAVELET) decrease the tile size" << endl*/
+	   << " S: (WAVELET) increase s" << endl
+	   << " s: (WAVELET) decrease s" << endl
+	   << " p: (WAVELET) enable/disable noise projection" << endl
+	   <<endl
+	   << " D: (ALL) increase diffuse ref" << endl
+	   << " d: (ALL) decrease diffuse ref" << endl
+	   << " C: (ALL) increase spec ref" << endl
+	   << " c: (ALL) decrease spec ref" << endl
+	   << " N: (ALL) increase shininess" << endl
+	   << " n: (ALL) decrease shininess" << endl
 	   << " <drag>+<left button>: rotate model" << endl
 	   << " <drag>+<right button>: move model" << endl
 	   << " <drag>+<middle button>: zoom" << endl
@@ -390,76 +436,141 @@ void printUsage () {
 
 void key (unsigned char keyPressed, int x, int y) {
   switch (keyPressed) {
-  case 'f':
-	if (fullScreen == true) {
-	  glutReshapeWindow (SCREENWIDTH, SCREENHEIGHT);
-	  fullScreen = false;
-	} else {
-	  glutFullScreen ();
-	  fullScreen = true;
-	}
-	break;
+
+	// quit
   case 'q':
   case 27:
 	clear ();
 	exit (0);
 	break;
-  case 'w':
-	glPolygonMode (GL_FRONT_AND_BACK, GL_LINE);
-	phongShader->bind ();
-	break;
-  case 'g':
-	glPolygonMode (GL_FRONT_AND_BACK, GL_FILL);
-	phongShader->bind ();
-	break;
-  case 'e':
-	mode = Solid;
-	phongShader->unbind ();
-	break;
-  case 'r':
-	mode = Phong;
-	phongShader->bind ();
-	break;
+
+	// Phong
   case 'D':
-	diffuseRef += 0.1f;
-	phongShader->setDiffuseRef (diffuseRef);
+	diffuseRef = min(2.0f, diffuseRef+0.1f);
+	cout << "PHONG: new diffuse ref: " << diffuseRef << endl;
 	break;
   case 'd':
-	if (diffuseRef > 0.1f) {
-	  diffuseRef -= 0.1f;
-	  phongShader->setDiffuseRef (diffuseRef);
-	}
+	diffuseRef = max(0.0f, diffuseRef-0.1f);
+	cout << "PHONG: new diffuse ref: " << diffuseRef << endl;
 	break;
-  case 'T':
-	depthEdgeThreshold += 0.1f;
-	phongShader->setDepthEdgeThreshold (depthEdgeThreshold);
+  case 'C':
+	specRef = min(3.0f, specRef+0.1f);
+	cout << "PHONG: new spec ref: " << specRef << endl;
 	break;
-  case 't':
-	if (depthEdgeThreshold > 0.1f) {
-	  depthEdgeThreshold -= 0.1f;
-	  phongShader->setDepthEdgeThreshold (depthEdgeThreshold);
-	}
+  case 'c':
+	specRef = max(0.0f, specRef-0.1f);
+	cout << "PHONG: new spec ref: " << specRef << endl;
+	break;
+  case 'N':
+	shininess = min(30.0f, shininess+1.0f);
+	cout << "PHONG: new shininess: " << shininess << endl;
+	break;
+  case 'n':
+	shininess = max(0.0f, shininess-1.0f);
+	cout << "PHONG: new shininess: " << shininess << endl;
+	break;
+
+
+	// gabor
+  case 'A':
+	a = min(0.1, a + 0.01);
+	cout << "GABOR: new a: " << a << endl;
+	break;
+  case 'a':
+	a = max(0.001, a - 0.01);
+	cout << "GABOR: new a: " << a << endl;
+	break;
+  case 'w':
+	omega += M_PI/10.0;
+	cout << "GABOR: new omega: " << omega << endl;
+	break;
+  case 'i':
+	iso = !iso;
+	cout << "GABOR: is iso: " << iso << endl;
+	break;
+
+	// Noise type
+  case 'P':
+	shader = perlinShader;
+	shader->bind();
+	cout << "Applied Perlin noise" << endl;
+	break;
+  case 'W':
+	shader = waveletShader;
+	shader->bind();
+	cout << "Applied Wavelet noise" << endl;
+	break;
+  case 'G':
+	shader = gaborShader;
+	shader->bind();
+	cout << "Applied Gabor noise" << endl;
+	break;
+
+	// Wavelet
+  case 'B':
+	nbands = min(5, nbands + 1);
+	cout << "WAVELET: number of bands: " << nbands << endl;
+	break;
+  case 'b':
+	nbands = max(1, nbands - 1);
+	cout << "WAVELET: number of bands: " << nbands << endl;
+	break;
+  case 'R':
+	firstBand = min(0, firstBand + 1);
+	cout << "WAVELET: first bands: " << firstBand << endl;
+	break;
+  case 'r':
+	firstBand = max(-10, firstBand - 1);
+	cout << "WAVELET: first bands: " << firstBand << endl;
+	break;
+	/*case 'T':
+	  tileSize = min(6, tileSize + 2);
+	  cout << "WAVELET: tile size: " << tileSize << endl;
+	  break;
+	  case 't':
+	  tileSize = max(2, tileSize - 2);
+	  cout << "WAVELET: tile size: " << tileSize << endl;
+	  break;*/
+  case 'p':
+	noiseProjected = !noiseProjected;
+	cout << "WAVELET: is noise projected: " << noiseProjected << endl;
 	break;
   case 'S':
-	specRef += 0.1f;
-	phongShader->setSpecRef (specRef);
+	s = min(0.0, s + 1.0);
+	cout << "WAVELET: s: " << s << endl;
 	break;
   case 's':
-	if (specRef > 0.1f) {
-	  specRef -= 0.1f;
-	  phongShader->setSpecRef (specRef);
-	}
+	s = max(-10.0, s - 1.0);
+	cout << "WAVELET: s: " << s << endl;
 	break;
-  case '+':
-	shininess += 1.0f;
-	phongShader->setShininess (shininess);
+
+
+	// perlin
+  case 'O':
+	nbOctave = min(8, nbOctave + 1);
+	cout << "PERLIN: number of octaves: " << nbOctave << endl;
 	break;
-  case '-':
-	if (shininess > 1.0f) {
-	  shininess -= 1.0f;
-	  phongShader->setShininess (shininess);
-	}
+  case 'o':
+	nbOctave = max(1, nbOctave - 1);
+	cout << "PERLIN: number of octaves: " << nbOctave << endl;
 	break;
+  case 'E':
+	persistence = min(0.9, persistence + 0.05);
+	cout << "PERLIN: persistence: " << persistence << endl;
+	break;
+  case 'e':
+	persistence = max(0.1, persistence - 0.05);
+	cout << "PERLIN: persistence: " << persistence << endl;
+	break;
+  case 'F':
+	f0 = min(10.0, f0 + 1.0);
+	cout << "PERLIN: frequence: " << f0 << endl;
+	break;
+  case 'f':
+	f0 = max(1.0, f0 - 1.0);
+	cout << "PERLIN: frequence: " << f0 << endl;
+	break;
+
   case '?':
   default:
 	printUsage ();
@@ -546,7 +657,8 @@ int main (int argc, char ** argv) {
   glDepthFunc (GL_LESS);
   glEnable (GL_DEPTH_TEST);
 
-  phongShader->bind ();
+  shader->bind ();
+  setShaderValues();
   glutMainLoop ();
   return EXIT_SUCCESS;
 }
