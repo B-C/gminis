@@ -21,9 +21,6 @@ string Mesh::getHashkey(unsigned i, unsigned j) const{
 }
 
 void Mesh::subdivideLoop(){
-  if(voisins.size()==0)
-	compute1voisinages();
-
   //key (v1~v2), (new ind in V, nb of triangle that use that edge-1)
   unordered_map<string, tuple<unsigned, unsigned> > newVertex;
   vector<Triangle> newTriangle;
@@ -44,6 +41,7 @@ void Mesh::subdivideLoop(){
 	  else {
 		unsigned ind, count;
 		tie (ind, count) = v->second;
+
 		V[ind].p+=(V[c].p*1/8);
 		V[ind].n+=V[c].n;
 
@@ -70,17 +68,19 @@ void Mesh::subdivideLoop(){
 		  get<0>(newVertex[getHashkey(t[0],t[2])])});
   }
 
+  voisins.clear();
+  compute1voisinages();
   /* move even (old) vertices */
   for(unsigned int i = 0 ; i < sizeV ; i++) {
   	unsigned int n = voisins[i].size();
   	float alpha = 1.f/64.f*(40.f-pow(3.f+2.f*cos(2*M_PI/float(n)),2));
 
-  	V[i].p=(1-alpha)*V[i].p;
-  	V[i].n=(1-alpha)*V[i].n;
+  	V[i].p*=(1-alpha);
+  	V[i].n*=(1-alpha);
 
   	for(unsigned int vois : voisins[i]) {
-	  V[i].p+=alpha/n*V[get<0>(newVertex[getHashkey(i, vois)])].p;
-	  V[i].n+=alpha/n*V[get<0>(newVertex[getHashkey(i, vois)])].n;
+	  V[i].p+=alpha/float(n)*V[vois].p;
+	  V[i].n+=alpha/float(n)*V[vois].n;
   	}
   }
 
@@ -88,7 +88,6 @@ void Mesh::subdivideLoop(){
 	v.n.normalize();
 
   T = newTriangle;
-  voisins.clear();
   centerAndScaleToUnit();
   recomputeNormals();
 }
