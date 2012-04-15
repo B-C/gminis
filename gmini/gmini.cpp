@@ -117,7 +117,7 @@ void init (const char * modelFilename, const char * textureFilename) {
   if(modelFilename)
 	mesh.loadOFF (modelFilename);
   else
-	mesh.makeSphere(50, 50);
+	mesh.makeCube();//Sphere(50, 50);
   if(textureFilename)
 	texture = new Texture(textureFilename);
   initLight ();

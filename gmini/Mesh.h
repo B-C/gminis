@@ -18,12 +18,13 @@ public:
   }
   Vec3Df p;
   Vec3Df n;
+
 };
 
 class Triangle {
 public:
   Triangle () {
-	for(int & i : v)
+	for(unsigned int & i : v)
 	  i = 0;
   }
   Triangle (const Triangle & t) : v(t.v) {}
@@ -40,7 +41,11 @@ public:
 	return (*this);
   }
 
-  std::array<int, 3> v;// = {0, 0, 0};, not yet supported in gcc
+  unsigned int operator[](unsigned int i) const {
+	return v[i];
+  }
+
+  std::array<unsigned int, 3> v;// = {0, 0, 0};, not yet supported in gcc
 };
 
 class Mesh {
@@ -97,4 +102,5 @@ private:
 							  unsigned int resolution);
   inline static int getIndice(Vec3Df point, Vec3Df offset, Vec3Df pas,
 							  unsigned int resolution);
+  inline std::string getHashkey(unsigned i, unsigned j) const;
 };

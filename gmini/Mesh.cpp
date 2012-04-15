@@ -2,6 +2,9 @@
 #include <fstream>
 #include <string>
 #include <cmath>
+#include <unordered_map>
+#include <sstream>
+#include <tuple>
 
 #include <iostream>
 
@@ -9,9 +12,85 @@
 
 using namespace std;
 
+string Mesh::getHashkey(unsigned i, unsigned j) const{
+  unsigned min =i, max=j;
+  if(j<i) { min = j; max=i;}
+  stringstream ret(stringstream::in|stringstream::out);
+  ret << min << "~" << max;
+  return ret.str();
+}
+
 void Mesh::subdivideLoop(){
+  if(voisins.size()==0)
+	compute1voisinages();
 
+  //key (v1~v2), (new ind in V, nb of triangle that use that edge-1)
+  unordered_map<string, tuple<unsigned, unsigned> > newVertex;
+  vector<Triangle> newTriangle;
 
+  const unsigned int sizeV = V.size();
+
+  for(const Triangle &t : T) {
+	/*	generate new vertex */
+	auto aux = [&](unsigned a, unsigned b, unsigned c) {
+	  string key = getHashkey(a, b);
+	  auto v = newVertex.find(key);
+
+	  if(v == newVertex.end()) { // don't exist
+		V.push_back({(V[a].p+V[b].p)*3/8+V[c].p*1/8,
+			  (V[a].n+V[b].n)*3+V[c].n});
+		newVertex[key] = make_tuple(V.size()-1, 0);
+	  }
+	  else {
+		unsigned ind, count;
+		tie (ind, count) = v->second;
+		V[ind].p+=(V[c].p*1/8);
+		V[ind].n+=V[c].n;
+
+		if(count)
+		  V[ind].p*=(count+7)/(count+8);
+
+		newVertex[key] = make_tuple(ind, count+1);
+	  }
+	};
+
+	aux(t[0], t[1], t[2]);
+	aux(t[0], t[2], t[1]);
+	aux(t[1], t[2], t[0]);
+
+	/* generate new triangles */
+	for(unsigned int i = 0 ; i < 3 ; i++) {
+	  newTriangle.push_back({t[i],
+			get<0>(newVertex[getHashkey(t[i], t[(i+1)%3])]),
+			get<0>(newVertex[getHashkey(t[i], t[(i+2)%3])]) });
+	}
+
+	newTriangle.push_back({	get<0>(newVertex[getHashkey(t[0],t[1])]),
+		  get<0>(newVertex[getHashkey(t[1],t[2])]),
+		  get<0>(newVertex[getHashkey(t[0],t[2])])});
+  }
+
+  /* move even (old) vertices */
+  for(unsigned int i = 0 ; i < sizeV ; i++) {
+  	unsigned int n = voisins[i].size();
+  	float alpha = 1.f/64.f*(40.f-pow(3.f+2.f*cos(2*M_PI/float(n)),2));
+
+  	V[i].p=(1-alpha)*V[i].p;
+  	V[i].n=(1-alpha)*V[i].n;
+
+  	for(unsigned int vois : voisins[i]) {
+	  V[i].p+=alpha/n*V[get<0>(newVertex[getHashkey(i, vois)])].p;
+	  V[i].n+=alpha/n*V[get<0>(newVertex[getHashkey(i, vois)])].n;
+  	}
+  }
+
+  for(Vertex &v : V)
+	v.n.normalize();
+
+  T = newTriangle;
+  voisins.clear();
+  centerAndScaleToUnit();
+  recomputeNormals();
 }
 
 vector<Vec3Df> Mesh::getCube() const {
