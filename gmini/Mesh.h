@@ -81,6 +81,8 @@ public:
 	voisins.clear();
   }
 
+  std::array<Vec3Df, 2> boundingBox() const; //compube surrounding cube
+
 private:
   void scaleUnit();
   void recomputeNormals();
@@ -96,7 +98,6 @@ private:
   void compute1voisinages();
 
   //simplifyMesh
-  std::vector<Vec3Df> getCube() const; //compube surrounding cube
   inline static Vec3D<int> getIndice(Vec3Df point, Vec3Df offset, Vec3Df pas);
   inline static int getIndice(Vec3D<int> indices,
 							  unsigned int resolution);

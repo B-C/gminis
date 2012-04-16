@@ -22,6 +22,8 @@
 #include "Texture.h"
 #include "Brdf.h"
 
+#include "KDtree.h"
+
 using namespace std;
 
 // -------------------------------------------
@@ -53,6 +55,8 @@ static Texture *texture;
 static Brdf *brdf;
 
 static Mesh mesh;
+static KDtree *tree;
+static bool drawKdtree = false;
 
 void printUsage () {
   cerr << endl
@@ -63,6 +67,7 @@ void printUsage () {
 	   << "Keyboard commands" << endl
 	   << "------------------" << endl
 	   << " w: Toggle Wireframe/Flat/Gouraud Rendering Mode" << endl
+	   << " k: Draw kDtree" << endl
 	   << " b: brdf on/off" << endl
 	   << " t: texture on/off" << endl
 	   << " a: ambient occlusion on/off" << endl
@@ -144,6 +149,36 @@ void clear () {
 // functions for alternative rendering.
 // ------------------------------------
 
+void drawCube(const Vec3Df min, const Vec3Df max) {
+  glVertex3f(min[0], min[1], min[2]);
+  glVertex3f(max[0], min[1], min[2]);
+  glVertex3f(min[0], min[1], min[2]);
+  glVertex3f(min[0], max[1], min[2]);
+  glVertex3f(max[0], max[1], min[2]);
+  glVertex3f(max[0], min[1], min[2]);
+  glVertex3f(max[0], max[1], min[2]);
+  glVertex3f(min[0], max[1], min[2]);
+
+  glVertex3f(min[0], min[1], max[2]);
+  glVertex3f(max[0], min[1], max[2]);
+  glVertex3f(min[0], min[1], max[2]);
+  glVertex3f(min[0], max[1], max[2]);
+  glVertex3f(max[0], max[1], max[2]);
+  glVertex3f(max[0], min[1], max[2]);
+  glVertex3f(max[0], max[1], max[2]);
+  glVertex3f(min[0], max[1], max[2]);
+
+  glVertex3f(min[0], min[1], min[2]);
+  glVertex3f(min[0], min[1], max[2]);
+  glVertex3f(min[0], max[1], min[2]);
+  glVertex3f(min[0], max[1], max[2]);
+  glVertex3f(max[0], max[1], min[2]);
+  glVertex3f(max[0], max[1], max[2]);
+  glVertex3f(max[0], min[1], min[2]);
+  glVertex3f(max[0], min[1], max[2]);
+
+}
+
 void draw () {
   const vector<Vertex> & V = mesh.V;
   const vector<Triangle> & T = mesh.T;
@@ -185,6 +220,14 @@ void draw () {
 	}
   }
   glEnd ();
+  if(drawKdtree)
+	tree->exec([](const KDtree *t) {
+		glBegin(GL_LINES);
+		glColor3f(0.f, 0.f, 0.f);
+		drawCube(t->boundingBox[0], t->boundingBox[1]);
+		glEnd();
+		return true;
+	  });
 }
 
 void display () {
@@ -255,6 +298,9 @@ void key (unsigned char keyPressed, int x, int y) {
   /*******/
 
   switch (keyPressed) {
+  case 'k':
+	drawKdtree = ! drawKdtree;
+	break;
   case 'b':
 	brdf->turnOnOff();
 	break;
@@ -405,6 +451,9 @@ int main (int argc, char ** argv) {
   glutMotionFunc (motion);
   glutMouseFunc (mouse);
   key ('?', 0, 0);
+
+  tree = new KDtree(mesh);
+
   glutMainLoop ();
   return EXIT_SUCCESS;
 }

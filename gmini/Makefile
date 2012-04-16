@@ -27,6 +27,8 @@ clean::
 # Gestion des dépendances
 ifneq "$(MAKECMDGOALS)" "clean"
 -include $(patsubst %.cpp,%.d,$(SRC))
+-include gmini.d
+-include gmini_2D.d
 endif
 
 %.d : %.cpp Makefile

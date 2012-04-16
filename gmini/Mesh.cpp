@@ -92,9 +92,8 @@ void Mesh::subdivideLoop(){
   recomputeNormals();
 }
 
-vector<Vec3Df> Mesh::getCube() const {
-  vector<Vec3Df> cube;
-  cube.resize(2);
+array<Vec3Df, 2> Mesh::boundingBox() const {
+  array<Vec3Df, 2> cube;
   cube[0]=cube[1]=V[0].p;
 
   for(const Vertex &v : V) {
@@ -121,7 +120,7 @@ int Mesh::getIndice(Vec3Df p, Vec3Df o, Vec3Df pas,	unsigned int r) {
 }
 
 void Mesh::simplifyMesh(unsigned int r){
-  vector<Vec3Df> cube = getCube();
+  array<Vec3Df, 2> cube = boundingBox();
   Vec3Df delta = (cube[1]-cube[0])/(r-1);
   vector<Vertex> grid;
   grid.resize(pow(r,3));
